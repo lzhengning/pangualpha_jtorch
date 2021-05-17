@@ -21,7 +21,7 @@ mindspore/mindspore-gpu:1.2.0
 ##### 依赖
 
 ```
-pip install jiaba
+pip install jieba
 pip install sentencepiece==0.1.94
 ```
 
