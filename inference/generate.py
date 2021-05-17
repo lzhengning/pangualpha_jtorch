@@ -9,10 +9,6 @@ import mindspore as ms
 
 
 def top_k_logits(logits, top_k=0, top_p=0.9, filter_value=-float(0)):
-    """ This function has been mostly taken from huggingface conversational
-     ai code at
-         https://medium.com/huggingface/how-to-build-a-state-of-the-art-
-              conversational-ai-with-transfer-learning-2d818ac26313 """
     if top_k > 0:
         # Remove all tokens with a probability less than the
         # last token of the top-k
