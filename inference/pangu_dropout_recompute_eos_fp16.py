@@ -25,6 +25,7 @@ from mindspore.ops import functional as F
 import os
 #from mindspore.communication.management import get_group_size
 
+
 class LayerNormScale(nn.Cell):
     def __init__(self, normalized_shape, dp=4, eps=1e-5, scale=1e-3):
         super(LayerNorm, self).__init__()
