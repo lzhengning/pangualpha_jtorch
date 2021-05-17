@@ -11,7 +11,7 @@ import os
 import numpy as np
 
 
-def integrate_ckpt_file():
+def run_eval():
 
     ms.context.set_context(save_graphs=False, mode=ms.context.GRAPH_MODE, device_target="GPU")
 
@@ -65,13 +65,13 @@ def integrate_ckpt_file():
         output_ids = generate(model_predict, input_ids, config.seq_length, 9)
         output_samples = tokenizer.convert_ids_to_tokens(output_ids.tolist())
         print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-        print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
         print('Input is:', sample)
         print('Output is:', output_samples, flush=True)
+        print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
 
     return
 
 if __name__ == "__main__":
-    integrate_ckpt_file()
+    run_eval()
 
 
