@@ -4,7 +4,7 @@
 
 ### 描述
 
-本项目是  [Pangu-alpha](https://git.openi.org.cn/PCL-Platform.Intelligence/PanGu-Alpha) 的 GPU 推理版本，详情请查看原项目。目前可以正确在 GPU 上推理，正在尝试训练流程。
+本项目是  [Pangu-alpha](https://git.openi.org.cn/PCL-Platform.Intelligence/PanGu-Alpha) 的 GPU 推理版本，详情请查看原项目。目前可以正确在 GPU 单卡上推理，正在尝试训练流程。
 
 
 
