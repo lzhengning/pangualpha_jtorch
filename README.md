@@ -15,7 +15,7 @@
 ##### 环境
 
 ```
-mindspore/mindspore-gpu:1.2.0
+yands/mindspore_pangu-alpha:1.2.0
 ```
 
 ##### 依赖
