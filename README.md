@@ -37,6 +37,14 @@ python eval_task-2.6b-fp16.py
 
 
 
+gpu 使用情况
+
+| 模型      | 显存占用 |
+| --------- | -------- |
+| 2.6B_fp16 | 6728.0M  |
+
+
+
 ### MD5
 
 `Pangu-alpha_2.6B.ckpt`的 md5 是：`da404a985671f1b5ad913631a4e52219 `
