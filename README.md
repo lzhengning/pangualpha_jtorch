@@ -15,7 +15,7 @@
 ##### 环境
 
 ```
-yands/mindspore_pangu-alpha:1.2.0
+docker pull yands/mindspore_pangu-alpha:1.2.0
 ```
 
 ##### 依赖
