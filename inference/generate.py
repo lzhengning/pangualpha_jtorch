@@ -44,6 +44,7 @@ def softmax(x):
     return softmax_x
 
 def generate(model, origin_inputs, seq_length, end_token=50256):
+
     pad_length = seq_length - origin_inputs.shape[-1]
 
     generate_tokens_num = 0
@@ -52,7 +53,7 @@ def generate(model, origin_inputs, seq_length, end_token=50256):
     input_ids = np.pad(origin_inputs, ((0, 0), (0, pad_length)), 'constant', constant_values=(0, 0))
     while generate_tokens_num < label_token_length:
         logits = model.predict(ms.Tensor(input_ids, ms.int32)).asnumpy().reshape(1, seq_length, -1)
-        probs = top_k_logits(logits[0, valid_length - 1], top_k=0, top_p=0.8)
+        probs = top_k_logits(logits[0, valid_length - 1], top_k=5, top_p=0.8)
         p = softmax(probs)
         p = p / sum(p)
         target_index = np.random.choice(len(p), p=p)
@@ -72,4 +73,3 @@ def generate(model, origin_inputs, seq_length, end_token=50256):
     # print(logits.shape)
     # print(logits)
     # return origin_inputs
-

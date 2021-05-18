@@ -10,7 +10,7 @@
 
 ### 方法
 
-目前个人只成功在 T5 GPU 上运行2.6B，由于显存有限，所以把模型参数压缩成 `fp16` 。13B 模型的推理也正在做。
+目前个人只成功在 T4 GPU 上运行2.6B，由于显存有限，所以把模型参数压缩成 `fp16` 。13B 模型的推理也正在做。
 
 ##### 环境
 
@@ -45,15 +45,17 @@ python eval_task-2.6b-fp16.py
 
 
 
-### MD5
+### 模型
 
-`Pangu-alpha_2.6B.ckpt`的 md5 是：`da404a985671f1b5ad913631a4e52219 `
+| 模型                                                         | MD5                              |
+| ------------------------------------------------------------ | -------------------------------- |
+| [Pangu-alpha_2.6B.ckpt](https://git.openi.org.cn/attachments/27234961-4d2c-463b-9052-0240cc7ff29b?type=0) | da404a985671f1b5ad913631a4e52219 |
 
 
 
 ### 问题
 
-目前可以在 T5 GPU上正确推理，尝试在 v100 上运行，但报错
+目前可以在 T4 GPU上正确推理，尝试在 v100 上运行，但报错
 
 ```
 log:
@@ -120,3 +122,4 @@ Traceback (most recent call last):
     result = self._executor.compile(obj, args_list, phase, use_vm)
 RuntimeError: mindspore/ccsrc/backend/session/kernel_build_client.h:110 Response] Response is empty
 ```
+
