@@ -47,7 +47,7 @@ def get_model(model,ckpt_path):
             seq_length=1024,
             vocab_size=40000,
             embedding_size=5120,  # 353M   8B
-            num_layers=20,
+            num_layers=40,
             num_heads=40,
             expand_ratio=4,
             post_layernorm_residual=False,
