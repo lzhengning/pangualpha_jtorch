@@ -116,8 +116,9 @@ if __name__ == "__main__":
                         choices=["13B", "2.6B"])
     parser.add_argument("--load_ckpt_path",
                         type=str,
-                        default='/userhome/temp/PanguAlpha_13b_fp16.ckpt',
+                        default='/userhome/temp/PanguAlpha_13b_fp16.ckpt', #/userhome/temp/PanguAlpha_2_6b.ckpt
                         help="ckpt file path.")
+
     args_opt = parser.parse_args()
     run_eval(args_opt)
 
