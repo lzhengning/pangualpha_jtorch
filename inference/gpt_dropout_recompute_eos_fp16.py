@@ -230,8 +230,7 @@ class EmbeddingLookup(nn.Cell):
         self.vocab_size = config.vocab_size
         self.embedding_size = config.embedding_size
 
-        config.wo
-        e_table = np.load('/cache/word_embedding.npy')
+        e_table = np.load(config.word_emb_path)
         e_table = Tensor(e_table, mstype.float16)
         
         self.embedding_table = Parameter(e_table, name="embedding_table")
@@ -601,10 +600,10 @@ class GPT_Model(nn.Cell):
         self.get_attention_mask = AttentionMask(config)
         self.word_embedding = EmbeddingLookup(config).set_comm_fusion(1)
         
-        p_table = np.load('/cache/position_embedding.npy')
+        p_table = np.load(config.position_emb_path)
         p_table = Tensor(p_table, mstype.float16)
         
-        top_table = np.load('/cache/top_query_embedding.npy')
+        top_table = np.load(config.top_query_path)
         self.top_table = Tensor(top_table, mstype.float16)
         
         self.position_embedding = nn.Embedding(

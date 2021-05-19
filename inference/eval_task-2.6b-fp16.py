@@ -11,7 +11,7 @@ import numpy as np
 
 
 from gpt_dropout_recompute_eos_fp16 import EvalNet, GPT, EvalNet_p
-from inference.gpt_wrapcell_gradient_scale_eos import VirtualDatasetOneInputCell
+from gpt_wrapcell_gradient_scale_eos import VirtualDatasetOneInputCell
 
 
 def get_model():
