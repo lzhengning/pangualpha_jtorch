@@ -41,7 +41,10 @@ class PANGUALPHAConfig:
                  micro_size=32,
                  eod_reset=False,
                  use_top_query_attention=True,
-                 use_recompute=True):
+                 use_recompute=True,
+                 word_emb_path='',
+                 position_emb_path='',
+                 top_query_path=''):
         self.batch_size = batch_size
         self.seq_length = seq_length
         self.vocab_size = vocab_size
@@ -63,6 +66,10 @@ class PANGUALPHAConfig:
         self.eod_reset = eod_reset
         self.use_recompute = use_recompute
         self.use_top_query_attention = use_top_query_attention
+        self.word_emb_path = word_emb_path
+        self.position_emb_path = position_emb_path
+        self.top_query_path = top_query_path
+
 
     def __str__(self):
         info = "[PANGUALPHAConfig]" + '===' * 10 + '\n'

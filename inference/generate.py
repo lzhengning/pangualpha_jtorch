@@ -43,33 +43,47 @@ def softmax(x):
     softmax_x = exp_x / np.sum(exp_x)
     return softmax_x
 
-def generate(model, origin_inputs, seq_length, end_token=50256):
-    pad_length = seq_length - origin_inputs.shape[-1]
 
-    generate_tokens_num = 0
-    valid_length = len(origin_inputs)
-    label_token_length = 50
-    input_ids = np.pad(origin_inputs, ((0, 0), (0, pad_length)), 'constant', constant_values=(0, 0))
-    while generate_tokens_num < label_token_length:
-        logits = model.predict(ms.Tensor(input_ids, ms.int32)).asnumpy().reshape(1, seq_length, -1)
-        probs = top_k_logits(logits[0, valid_length - 1], top_k=0, top_p=0.8)
-        p = softmax(probs)
+def generate(model, origin_inputs, seq_length, end_token=50256, TOPK = 5, max_num=50):
+    """
+    TopK for text generation
+
+    Inputs:
+        model: the model for inferencing
+        origin_inputs: the original inputs based on which the model will continue writing
+        seq_length: seq_length for the model
+        end_token: end of sentence token id
+
+    Returns:
+        outputs: the ids for the generated text
+    """
+    pad_id = 6
+    seq_length = seq_length
+    bs, valid_length = origin_inputs.shape
+    pad_length = seq_length - origin_inputs.shape[-1]
+    input_ids = np.pad(origin_inputs, ((0, 0), (0, pad_length)), 'constant', constant_values=(0, pad_id))
+    # print("input_ids is ", input_ids)
+    cnt = 0
+    while valid_length < seq_length:
+        inputs = Tensor(input_ids, mstype.int32)
+        logits = model.predict(inputs).asnumpy()
+        logits = logits.reshape(bs, seq_length, -1)
+        probs = logits[0, valid_length-1, :]
+        p_args = probs.argsort()[::-1][:TOPK]
+
+        p = probs[p_args]
         p = p / sum(p)
         target_index = np.random.choice(len(p), p=p)
-        #         print(target_index)
-
-        if (target_index == end_token) or (valid_length == seq_length - 1):
+        if p_args[target_index] == end_token or valid_length == seq_length-1 or cnt>=max_num:
             outputs = input_ids
             break
+        input_ids[0][valid_length] = p_args[target_index]
+        valid_length += 1
+        cnt += 1
 
-        if not target_index == 0:  # 后处理，不允许模型生成UNK
-            input_ids[0][valid_length] = target_index
-            valid_length += 1
-            generate_tokens_num += 1
-        outputs = input_ids
-    outputs = outputs[0, :np.sum(outputs != 0)]
+    length = np.sum(outputs != pad_id)
+    outputs = outputs[0][:length]
     return outputs
-    # print(logits.shape)
-    # print(logits)
-    # return origin_inputs
+
+
 
