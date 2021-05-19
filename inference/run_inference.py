@@ -1,21 +1,17 @@
 from mindspore import load_checkpoint, load_param_into_net
 from mindspore.train.model import Model
 import mindspore as ms
-from pangu_dropout_recompute_eos_fp16 import PANGUALPHA,EvalNet
-from utils_fix import PANGUALPHAConfig
 
 from tokenization_jieba import JIEBATokenizer
 from generate import generate
 import os
 import numpy as np
 
+from pangu_dropout_recompute_eos_fp16 import EvalNet, PANGUALPHA, EvalNet_p
+from pangu_wrapcell_gradient_scale_eos import VirtualDatasetOneInputCell
+from utils_fix import PANGUALPHAConfig
 
-from gpt_dropout_recompute_eos_fp16 import EvalNet, GPT, EvalNet_p
-from gpt_wrapcell_gradient_scale_eos import VirtualDatasetOneInputCell
-
-
-def get_model():
-
+def get_model_13b_fp16():
     # model_parallel_num = 8
     model_parallel_num = 1
     data_parallel_num = int(1 / model_parallel_num)
@@ -38,27 +34,21 @@ def get_model():
         self_layernorm=True,
         forward_reduce_scatter=True,
         word_emb_dp=True,
-        eod_reset=False,
-        word_emb_path='Newexp69_GPT3_5-684_2_word_embedding.npy',
-        position_emb_path='Newexp69_GPT3_5-684_2_position_embedding.npy',
-        top_query_path='Newexp69_GPT3_5-684_2_top_query_embedding.npy')
+        eod_reset=False)
     print("===config is: ", config, flush=True)
-    gpt = GPT(config)
-    gpt_ = VirtualDatasetOneInputCell(gpt)
-    eval_gpt = EvalNet_p(gpt_, generate=True)
-    eval_gpt.set_train(False)
-
-    model = Model(eval_gpt)
-
+    pangu = PANGUALPHA(config)
+    pangu_ = VirtualDatasetOneInputCell(pangu)
+    eval_pangu = EvalNet_p(pangu_, generate=True)
+    eval_pangu.set_train(False)
+    model = Model(eval_pangu)
 
     param_dict = load_checkpoint('/userhome/temp/PanguAlpha_13b_fp16.ckpt')
-    load_param_into_net(eval_gpt, param_dict)
+    load_param_into_net(eval_pangu, param_dict)
 
     print('#### Load ckpt success!!! ####')
-
     return model
 
-def get_model_pangu():
+def get_model_2b6_fp16():
 
     eod_reset = False
     model_parallel_num = 1
@@ -98,12 +88,14 @@ def get_model_pangu():
     print('load_param_into_net success!!!!!!!!')
     print("================load param ok=================", flush=True)
 
+    return model_predict
+
 
 def run_eval():
 
     ms.context.set_context(save_graphs=False, mode=ms.context.GRAPH_MODE, device_target="GPU")
 
-    model_predict = get_model()
+    model_predict = get_model_13b_fp16()
 
     tokenizer_path = os.getcwd() + "/tokenizer"
     tokenizer = JIEBATokenizer(os.path.join(tokenizer_path, 'vocab.vocab'),
