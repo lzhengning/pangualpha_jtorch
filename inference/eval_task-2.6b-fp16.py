@@ -1,4 +1,3 @@
-import mindspore.nn as nn
 from mindspore import load_checkpoint, load_param_into_net
 from mindspore.train.model import Model
 import mindspore as ms
@@ -11,8 +10,8 @@ import os
 import numpy as np
 
 
-from gpt_dropout_recompute_eos_fp16 import EvalNet, GPT, GPTWithLoss, CrossEntropyLoss, EvalNet_p
-from gpt_wrapcell_gradient_scale_eos import GPTTrainOneStepWithLossScaleCell, VirtualDatasetOneInputCell
+from gpt_dropout_recompute_eos_fp16 import EvalNet, GPT, EvalNet_p
+from inference.gpt_wrapcell_gradient_scale_eos import VirtualDatasetOneInputCell
 
 
 def get_model():
