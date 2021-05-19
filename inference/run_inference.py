@@ -6,12 +6,14 @@ from tokenization_jieba import JIEBATokenizer
 from generate import generate
 import os
 import numpy as np
+import argparse
 
 from pangu_dropout_recompute_eos_fp16 import EvalNet, PANGUALPHA, EvalNet_p
 from pangu_wrapcell_gradient_scale_eos import VirtualDatasetOneInputCell
 from utils_fix import PANGUALPHAConfig
 
-def get_model_13b_fp16():
+
+def get_model_13b_fp16(args):
     # model_parallel_num = 8
     model_parallel_num = 1
     data_parallel_num = int(1 / model_parallel_num)
@@ -42,13 +44,14 @@ def get_model_13b_fp16():
     eval_pangu.set_train(False)
     model = Model(eval_pangu)
 
-    param_dict = load_checkpoint('/userhome/temp/PanguAlpha_13b_fp16.ckpt')
+    param_dict = load_checkpoint(args.load_ckpt_path)
     load_param_into_net(eval_pangu, param_dict)
 
     print('#### Load ckpt success!!! ####')
     return model
 
-def get_model_2b6_fp16():
+
+def get_model_2b6_fp16(args):
 
     eod_reset = False
     model_parallel_num = 1
@@ -82,7 +85,7 @@ def get_model_2b6_fp16():
     eval_net.set_train(False)
     model_predict = Model(eval_net)
 
-    param_dict = load_checkpoint('/userhome/temp/2.6b_ckpts/new.ckpt')
+    param_dict = load_checkpoint(args.load_ckpt_path)
     load_param_into_net(eval_net, param_dict)
 
     print('load_param_into_net success!!!!!!!!')
@@ -91,11 +94,16 @@ def get_model_2b6_fp16():
     return model_predict
 
 
-def run_eval():
+def run_eval(args):
 
     ms.context.set_context(save_graphs=False, mode=ms.context.GRAPH_MODE, device_target="GPU")
 
-    model_predict = get_model_13b_fp16()
+    if args.model == '13B_fp16':
+        model_predict = get_model_13b_fp16(args)
+    if args.model == '2B6_fp16':
+        model_predict = get_model_2b6_fp16(args)
+    if args.model == '2B6':
+        model_predict = get_model_2b6(args)
 
     tokenizer_path = os.getcwd() + "/tokenizer"
     tokenizer = JIEBATokenizer(os.path.join(tokenizer_path, 'vocab.vocab'),
@@ -116,6 +124,17 @@ def run_eval():
     return
 
 if __name__ == "__main__":
-    run_eval()
+    parser = argparse.ArgumentParser(description="PANGUALPHA predicting")
+    parser.add_argument("--model",
+                        type=str,
+                        default="13B_fp16",
+                        choices=["13B_fp16", "2B6_fp16", "2B6"])
+    parser.add_argument("--load_ckpt_path",
+                        type=str,
+                        default='/userhome/temp/PanguAlpha_13b_fp16.ckpt', #/userhome/temp/PanguAlpha_2_6b.ckpt
+                        help="ckpt file path.")
+
+    args_opt = parser.parse_args()
+    run_eval(args_opt)
 
 
