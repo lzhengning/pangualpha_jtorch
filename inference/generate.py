@@ -57,6 +57,7 @@ def generate(model, origin_inputs, seq_length, end_token=50256, TOPK = 5, max_nu
     Returns:
         outputs: the ids for the generated text
     """
+
     pad_id = 6
     seq_length = seq_length
     bs, valid_length = origin_inputs.shape

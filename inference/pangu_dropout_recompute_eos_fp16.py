@@ -582,6 +582,7 @@ class PANGUALPHA_Model(nn.Cell):
         present_layer: Tensor, the current feature map
         embedding_table: Tensor, the embedding table for the vocabulary
     """
+
     def __init__(self, config):
         super(PANGUALPHA_Model, self).__init__()
         self.get_attention_mask = AttentionMask(config)
