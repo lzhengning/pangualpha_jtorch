@@ -39,9 +39,15 @@
 
 ##### 环境
 
+可以直接使用现成的 docker 镜像
+
 ```
 docker pull yands/mindspore_pangu-alpha:1.2.0
 ```
+
+如果不喜欢使用这个镜像，也可以使用`mindspore:1.2.0`版本，可以直接运行 `2.6B_fp32` 模型
+
+如果想运行不过需要修改几处mindspore源码，请查看附录。
 
 ##### 依赖
 
@@ -167,4 +173,193 @@ FileNotFoundError: [Errno 2] No such file or directory: '/userhome/pclproject/gp
 ```
 ModuleNotFoundError: No module named 'tvm'
 ```
+
+
+
+### 附录
+
+#### 源码修改
+
+1、mindspore/train/serialization.py 的 load_param_into_net() 函数
+
+```
+def load_param_into_net(net, parameter_dict, strict_load=False,):
+    """
+    Loads parameters into network.
+
+    Args:
+        net (Cell): Cell network.
+        parameter_dict (dict): Parameter dictionary.
+        strict_load (bool): Whether to strict load the parameter into net. If False, it will load parameter
+                           in the param_dict into net with the same suffix. Default: False
+
+    Raises:
+        TypeError: Argument is not a Cell, or parameter_dict is not a Parameter dictionary.
+
+    Examples:
+        >>> net = Net()
+        >>> ckpt_file_name = "./checkpoint/LeNet5-1_32.ckpt"
+        >>> param_dict = load_checkpoint(ckpt_file_name, filter_prefix="conv1")
+        >>> param_not_load = load_param_into_net(net, param_dict)
+        >>> print(param_not_load)
+        ['conv1.weight']
+    """
+    if not isinstance(net, nn.Cell):
+        logger.error("Failed to combine the net and the parameters.")
+        msg = ("Argument net should be a Cell, but got {}.".format(type(net)))
+        raise TypeError(msg)
+
+    if not isinstance(parameter_dict, dict):
+        logger.error("Failed to combine the net and the parameters.")
+        msg = ("Argument parameter_dict should be a dict, but got {}.".format(type(parameter_dict)))
+        raise TypeError(msg)
+
+    strict_load = Validator.check_bool(strict_load)
+    logger.info("Execute the process of loading parameters into net.")
+    net.init_parameters_data()
+    param_not_load = []
+    for _, param in net.parameters_and_names():
+        if param.name in parameter_dict:
+            new_param = parameter_dict[param.name]
+            new_param = Parameter(Tensor(new_param.asnumpy(), param.dtype), name=param.name)
+            if not isinstance(new_param, Parameter):
+                logger.error("Failed to combine the net and the parameters.")
+                msg = ("Argument parameter_dict element should be a Parameter, but got {}.".format(type(new_param)))
+                raise TypeError(msg)
+            _update_param(param, new_param)
+        else:
+            param_not_load.append(param.name)
+
+    if param_not_load and not strict_load:
+        _load_dismatch_prefix_params(net, parameter_dict, param_not_load)
+
+    logger.debug("Params not matched(in net but not in parameter_dict):")
+    for param_name in param_not_load:
+        logger.debug("%s", param_name)
+
+    logger.info("Loading parameters into net is finished.")
+    if param_not_load:
+        logger.warning("{} parameters in the net are not loaded.".format(len(param_not_load)))
+    return param_not_load
+
+```
+
+
+
+2、mindspore/nn/layer/basic.py 的 class Dense() 
+
+```
+class Dense(Cell):
+    r"""
+    The dense connected layer.
+
+    Applies dense connected layer for the input. This layer implements the operation as:
+
+    .. math::
+        \text{outputs} = \text{activation}(\text{inputs} * \text{kernel} + \text{bias}),
+
+    where :math:`\text{activation}` is the activation function passed as the activation
+    argument (if passed in), :math:`\text{kernel}` is a weight matrix with the same
+    data type as the inputs created by the layer, and :math:`\text{bias}` is a bias vector
+    with the same data type as the inputs created by the layer (only if has_bias is True).
+
+    Args:
+        in_channels (int): The number of channels in the input space.
+        out_channels (int): The number of channels in the output space.
+        weight_init (Union[Tensor, str, Initializer, numbers.Number]): The trainable weight_init parameter. The dtype
+            is same as input x. The values of str refer to the function `initializer`. Default: 'normal'.
+        bias_init (Union[Tensor, str, Initializer, numbers.Number]): The trainable bias_init parameter. The dtype is
+            same as input x. The values of str refer to the function `initializer`. Default: 'zeros'.
+        has_bias (bool): Specifies whether the layer uses a bias vector. Default: True.
+        activation (Union[str, Cell, Primitive]): activate function applied to the output of the fully connected layer,
+            eg. 'ReLU'.Default: None.
+
+    Inputs:
+        - **input** (Tensor) - Tensor of shape :math:`(*, in\_channels)`.
+
+    Outputs:
+        Tensor of shape :math:`(*, out\_channels)`.
+
+    Raises:
+        TypeError: If `in_channels` or `out_channels` is not an int.
+        TypeError: If `has_bias` is not a bool.
+        TypeError: If `activation` is not one of str, Cell, Primitive, None.
+        ValueError: If length of shape of `weight_init` is not equal to 2 or shape[0] of `weight_init`
+                    is not equal to `out_channels` or shape[1] of `weight_init` is not equal to `in_channels`.
+        ValueError: If length of shape of `bias_init` is not equal to 1
+                    or shape[0] of `bias_init` is not equal to `out_channels`.
+
+    Supported Platforms:
+        ``Ascend`` ``GPU`` ``CPU``
+
+    Examples:
+        >>> input = Tensor(np.array([[180, 234, 154], [244, 48, 247]]), mindspore.float32)
+        >>> net = nn.Dense(3, 4)
+        >>> output = net(input)
+        >>> print(output.shape)
+        (2, 4)
+    """
+
+    @cell_attr_register(attrs=['has_bias', 'activation'])
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 weight_init='normal',
+                 bias_init='zeros',
+                 has_bias=True,
+                 activation=None,
+                 dtype=mstype.float32):
+        super(Dense, self).__init__()
+        self.in_channels = Validator.check_positive_int(in_channels)
+        self.out_channels = Validator.check_positive_int(out_channels)
+        self.has_bias = Validator.check_bool(has_bias)
+        self.reshape = P.Reshape()
+        self.shape_op = P.Shape()
+
+
+        if isinstance(weight_init, Tensor):
+            if weight_init.ndim != 2 or weight_init.shape[0] != out_channels or \
+                    weight_init.shape[1] != in_channels:
+                raise ValueError("Weight init shape error.")
+        self.weight = Parameter(initializer(weight_init, [out_channels, in_channels], dtype), name="weight")
+
+        self.bias = None
+        if self.has_bias:
+            if isinstance(bias_init, Tensor):
+                if bias_init.ndim != 1 or bias_init.shape[0] != out_channels:
+                    raise ValueError("Bias init shape error.")
+            self.bias = Parameter(initializer(bias_init, [out_channels], dtype), name="bias")
+            self.bias_add = P.BiasAdd()
+
+        self.matmul = P.MatMul(transpose_b=True)
+        self.activation = get_activation(activation) if isinstance(activation, str) else activation
+        if activation is not None and not isinstance(self.activation, (Cell, Primitive)):
+            raise TypeError("The activation must be str or Cell or Primitive,"" but got {}.".format(activation))
+        self.activation_flag = self.activation is not None
+
+    def construct(self, x):
+        x_shape = self.shape_op(x)
+        check_dense_input_shape(x_shape)
+        if len(x_shape) != 2:
+            x = self.reshape(x, (-1, x_shape[-1]))
+        x = self.matmul(x, self.weight)
+        if self.has_bias:
+            x = self.bias_add(x, self.bias)
+        if self.activation_flag:
+            x = self.activation(x)
+        if len(x_shape) != 2:
+            out_shape = x_shape[:-1] + (-1,)
+            x = self.reshape(x, out_shape)
+        return x
+
+    def extend_repr(self):
+        s = 'input_channels={}, output_channels={}'.format(self.in_channels, self.out_channels)
+        if self.has_bias:
+            s += ', has_bias={}'.format(self.has_bias)
+        if self.activation_flag:
+            s += ', activation={}'.format(self.activation)
+        return s
+```
+
+
 
