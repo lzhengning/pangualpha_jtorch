@@ -151,7 +151,7 @@ def run_eval(args):
 
     samples = ['上联：瑞风播福泽，事业具昌盛千家乐',
                '四川的省会是?',
-               '上联：上联春雨润人间，社会和谐万象新',
+               '上联：春雨润人间，社会和谐万象新',
                '''书生：羌笛何须怨杨柳，春风不度玉门关。
 飞云：（这诗怎么这么耳熟？且过去跟他聊聊如何。）
 书生：小兄弟，要不要一起喝一杯？
@@ -170,8 +170,21 @@ def run_eval(args):
         output_samples = tokenizer.convert_ids_to_tokens(output_ids.tolist())
         print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
         print('Input is:', sample)
-        print('Output is:', output_samples, flush=True)
+        print('Output is:', output_samples[len(sample):], flush=True)
         print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+
+    while 1:
+        sample = input("Tell Pangu-alpha what you want to generate:")
+        tokenized_token = tokenizer.tokenize(sample)
+        start_sentence = tokenizer.convert_tokens_to_ids(tokenized_token)
+        input_ids = np.array(start_sentence).reshape(1, -1)
+        output_ids = generate(model_predict, input_ids, 1024, 9)
+        output_samples = tokenizer.convert_ids_to_tokens(output_ids.tolist())
+        print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+        print('Input is:', sample)
+        print('Output is:', output_samples[len(sample):], flush=True)
+        print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+
     return
 
 if __name__ == "__main__":
