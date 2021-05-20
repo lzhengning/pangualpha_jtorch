@@ -45,9 +45,9 @@
 docker pull yands/mindspore_pangu-alpha:1.2.0
 ```
 
-如果不喜欢使用这个镜像，也可以使用`mindspore:1.2.0`版本，可以直接运行 `2.6B_fp32` 模型
+如果不喜欢使用这个镜像，也可以使用 `mindspore:1.2.0` 版本，可以直接运行 `2.6B_fp32` 模型
 
-如果想运行不过需要修改几处mindspore源码，请查看附录。
+如果想运行 `fp16` 的模型需要修改几处 mindspore 源码，请查看[附录](#源码修改)。
 
 ##### 依赖
 
@@ -178,7 +178,7 @@ ModuleNotFoundError: No module named 'tvm'
 
 ### 附录
 
-#### 源码修改
+#### <a name="源码修改">源码修改</a>
 
 1、mindspore/train/serialization.py 的 load_param_into_net() 函数
 
