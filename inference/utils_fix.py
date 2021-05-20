@@ -16,6 +16,7 @@ from mindspore.parallel._utils import _get_global_rank
 from mindspore.communication.management import get_rank, get_group_size
 import uuid
 
+
 class PANGUALPHAConfig:
     """
     PANGUALPHA config class which defines the model size
