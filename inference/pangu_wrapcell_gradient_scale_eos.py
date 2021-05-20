@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ============================================================================
-"""GPT training wrapper"""
+"""PANGUALPHA training wrapper"""
 
 import mindspore.nn as nn
 from mindspore.ops import operations as P
@@ -115,9 +115,9 @@ class AdamWeightDecay(Optimizer):
 
 
 
-class GPTTrainOneStepWithLossScaleCell(nn.Cell):
+class PANGUALPHATrainOneStepWithLossScaleCell(nn.Cell):
     """
-    Encapsulation class of GPT network training.
+    Encapsulation class of PANGUALPHA network training.
 
     Append an optimizer to the training network after that the construct
     function can be called to create the backward graph.
@@ -133,7 +133,7 @@ class GPTTrainOneStepWithLossScaleCell(nn.Cell):
                  scale_update_cell=None,
                  enable_global_norm=False,
                  config=None):
-        super(GPTTrainOneStepWithLossScaleCell,
+        super(PANGUALPHATrainOneStepWithLossScaleCell,
               self).__init__(auto_prefix=False)
         self.network = network
         self.config = config

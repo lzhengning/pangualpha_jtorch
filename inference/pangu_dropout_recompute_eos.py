@@ -1,21 +1,20 @@
 """PANGUALPHA model"""
-
 import math
 import numpy as np
-import os
 import mindspore.nn as nn
 from mindspore.common.tensor import Tensor
 from mindspore.common.parameter import Parameter
 import mindspore.common.dtype as mstype
-from mindspore.common.initializer import initializer, Normal, TruncatedNormal
+from mindspore.common.initializer import initializer, Normal, Uniform, TruncatedNormal
 from mindspore.ops import operations as P
 from mindspore.ops import functional as F
+#from mindspore.communication.management import get_group_size
 
-class LayerNorm(nn.Cell):
-    def __init__(self, normalized_shape, dp=4, eps=1e-5):
+class LayerNormScale(nn.Cell):
+    def __init__(self, normalized_shape, dp=4, eps=1e-5, scale=1e-3):
         super(LayerNorm, self).__init__()
-        self.gamma = Parameter(initializer('ones', normalized_shape), name="gamma", parallel_optimizer=False)
-        self.beta = Parameter(initializer('zeros', normalized_shape), name="beta", parallel_optimizer=False)
+        self.gamma = Parameter(initializer('ones', normalized_shape), name="gamma")
+        self.beta = Parameter(initializer('zeros', normalized_shape), name="beta")
         self.mean = P.ReduceMean(keep_dims=True).shard(((dp, 1, 1),))
         self.square = P.Square().shard(((dp, 1, 1),))
         self.sqrt = P.Sqrt().shard(((dp, 1, 1),))
@@ -26,6 +25,39 @@ class LayerNorm(nn.Cell):
         self.mul = P.Mul().shard(((dp, 1, 1), (1,)))
         self.add2 = P.TensorAdd().shard(((dp, 1, 1), (1,)))
         self.real_div = P.RealDiv().shard(((dp, 1, 1), (dp, 1, 1)))
+        self.scale_div = P.RealDiv().shard(((dp, 1, 1), ()))
+        self.scale_mul = P.Mul().shard(((dp, 1, 1), ()))
+        self.scale = scale
+        self.scale_eps = self.eps/(self.scale*self.scale)
+    def construct(self, x):
+        mean = self.mean(x, -1)
+        diff = self.sub1(x, mean)
+        scale_diff = self.scale_div(diff, self.scale)
+        scale_variance = self.mean(self.square(scale_diff), -1)
+        scale_variance_eps = self.sqrt(self.add(scale_variance, self.scale_eps))
+        variance_eps = self.scale_mul(scale_variance_eps, self.scale)
+        output = self.real_div(diff, variance_eps)
+        rescaled_output = self.add2(self.mul(output, self.gamma), self.beta)
+        return rescaled_output
+
+class LayerNorm(nn.Cell):
+    def __init__(self, normalized_shape, dp=4, eps=1e-5, scale=1e-3):
+        super(LayerNorm, self).__init__()
+        self.gamma = Parameter(initializer('ones', normalized_shape), name="gamma")
+        self.beta = Parameter(initializer('zeros', normalized_shape), name="beta")
+        self.mean = P.ReduceMean(keep_dims=True).shard(((dp, 1, 1),))
+        self.square = P.Square().shard(((dp, 1, 1),))
+        self.sqrt = P.Sqrt().shard(((dp, 1, 1),))
+        self.sub1 = P.Sub().shard(((dp, 1, 1), (dp, 1, 1)))
+        self.sub2 = P.Sub().shard(((dp, 1, 1), (dp, 1, 1)))
+        self.add = P.TensorAdd().shard(((dp, 1, 1), ()))
+        self.eps = eps
+        self.mul = P.Mul().shard(((dp, 1, 1), (1,)))
+        self.add2 = P.TensorAdd().shard(((dp, 1, 1), (1,)))
+        self.real_div = P.RealDiv().shard(((dp, 1, 1), (dp, 1, 1)))
+        self.scale_div = P.RealDiv().shard(((dp, 1, 1), ()))
+        self.scale_mul = P.Mul().shard(((dp, 1, 1), ()))
+        self.scale = scale
     def construct(self, x):
         mean = self.mean(x, -1)
         diff = self.sub1(x, mean)
@@ -34,7 +66,6 @@ class LayerNorm(nn.Cell):
         output = self.real_div(diff, variance_eps)
         output = self.add2(self.mul(output, self.gamma), self.beta)
         return output
-
 
 class Mapping(nn.Cell):
     """
@@ -49,6 +80,8 @@ class Mapping(nn.Cell):
     Returns:
         output: Tensor, a 3d tensor after projection
     """
+
+    # 优化：matmul，dtype, mapping_output
     def __init__(self, config, input_size, output_size, scale=1.0):
         super(Mapping, self).__init__()
         self.output_size = output_size
@@ -63,11 +96,9 @@ class Mapping(nn.Cell):
                               parallel_optimizer=False)
         self.dtype = config.compute_dtype
         self.cast = P.Cast()
-        #self.cast.add_prim_attr("_side_effect", True)
         self.add = P.TensorAdd().shard(((config.dp, 1), (1,)))
         self.matmul = P.MatMul().shard(
             ((config.dp, config.mp), (config.mp, 1)))
-        self.matmul.add_prim_attr("recompute_comm_op", False)
 
     def construct(self, x):
         out_shape = P.Shape()(x)[:-1] + (self.output_size,)
@@ -93,7 +124,6 @@ class Mapping_output(nn.Cell):
                               name="mapping_bias")
         self.dtype = config.compute_dtype
         self.cast = P.Cast()
-        #self.cast.add_prim_attr("_side_effect", True)
         self.add = P.TensorAdd().shard(((config.dp, config.mp), (config.mp,)))
         self.matmul = P.MatMul().shard(((config.dp, 1), (1, config.mp)))
 
@@ -170,7 +200,7 @@ class AttentionMask(nn.Cell):
         return attention_mask
 
 
-class EmbeddingLookupPipeline(nn.Cell):
+class EmbeddingLookup(nn.Cell):
     """
     The embedding lookup table for vocabulary
     Args:
@@ -182,59 +212,23 @@ class EmbeddingLookupPipeline(nn.Cell):
         self.embedding_table: Tensor, the embedding table for the vocabulary
     """
     def __init__(self, config):
-        super(EmbeddingLookupPipeline, self).__init__()
-        self.vocab_size = config.vocab_size
-        self.embedding_size = config.embedding_size
-        if config.word_emb_dp:
-            self.gather = P.GatherV2().shard(((1, 1), (config.dp, 1)))
-        else:
-            self.gather = P.GatherV2().shard(((config.mp, 1), (1, 1)))
-            self.gather.add_prim_attr("repeated_calc_num_direction", "left")
-            if config.forward_reduce_scatter:
-                self.gather.add_prim_attr("forward_type", "ReduceScatter")
-        self.gather.add_prim_attr("begin", 0)
-        self.shape = (-1, config.seq_length, config.embedding_size)
-
-    def construct(self, input_ids, table):
-        output = self.gather(table, input_ids, 0)
-        return output
-
-
-class EmbeddingLookup(nn.Cell):
-    def __init__(self, config):
-        """
-        The embedding lookup table for vocabulary
-        Args:
-            config(PANGUALPHAConfig): the config of network
-        Inputs:
-            input_ids: the tokenized inputs with datatype int32
-        Returns:
-            output: Tensor, the embedding vector for the input with shape (batch_size, seq_length, embedding_size)
-            self.embedding_table: Tensor, the embedding table for the vocabulary
-        """
         super(EmbeddingLookup, self).__init__()
         self.vocab_size = config.vocab_size
         self.embedding_size = config.embedding_size
-        if config.load_ckpt_path:
-            # Loading the embedding table from the ckpt path:
-            embedding_path = os.path.join(config.load_ckpt_path, 'word_embedding.npy')
-            if os.path.exists(embedding_path):
-                e_table = np.load(embedding_path)
-                e_table = Tensor(e_table, mstype.float32)
-                self.embedding_table = Parameter(e_table, name="embedding_table")
-            else:
-                raise ValueError(f"{embedding_path} file not exits, please check whether word_embedding file exist.")
-        else:
-            self.embedding_table = Parameter(initializer(
-                Normal(0.02), [self.vocab_size, self.embedding_size]),
-                name="embedding_table")
+        e_table = Tensor(np.random.randn(config.vocab_size,config.embedding_size), mstype.float32)
+        self.embedding_table = Parameter(e_table,
+                                         name="embedding_table")
         if config.word_emb_dp:
             self.gather = P.GatherV2().shard(((1, 1), (config.dp, 1)))
         else:
-            self.gather = P.GatherV2().shard(((config.mp, 1), (1, 1)))
-            self.gather.add_prim_attr("repeated_calc_num_direction", "left")
-            if config.forward_reduce_scatter:
-                self.gather.add_prim_attr("forward_type", "ReduceScatter")
+            self.gather = P.GatherV2().shard(((1, config.mp), (config.dp, 1)))
+            self.gather.add_prim_attr("reverse_stra", True)
+            print("Using the reverse_stra columns slice", flush=True)
+            # The following is for row slice
+            #self.gather = P.GatherV2().shard(((config.mp, 1), (1, 1)))
+            #self.gather.add_prim_attr("repeated_calc_num_direction", "left")
+            #if config.forward_reduce_scatter:
+            #    self.gather.add_prim_attr("forward_type", "ReduceScatter")
         self.shape = (-1, config.seq_length, config.embedding_size)
 
     def construct(self, input_ids):
@@ -271,8 +265,10 @@ class Attention(nn.Cell):
             ((config.dp, config.mp, 1, 1), (config.dp, config.mp, 1, 1)))
         self.scale = scale
         self.real_div = P.RealDiv().shard(((config.dp, config.mp, 1, 1), ()))
-        self.sub = P.Sub().shard(((1,), (config.dp, 1, 1, 1))).add_prim_attr("_side_effect", True)
-        self.mul = P.Mul().shard(((config.dp, 1, 1, 1), (1,))).add_prim_attr("_side_effect", True)
+        self.sub = P.Sub().shard(
+            ((1,), (config.dp, 1, 1, 1))).add_prim_attr("_side_effect", True)
+        self.mul = P.Mul().shard(
+            ((config.dp, 1, 1, 1), (1,))).add_prim_attr("_side_effect", True)
         self.add = P.TensorAdd().shard(
             ((config.dp, 1, 1, 1), (config.dp, config.mp, 1, 1)))
         if self.scale:
@@ -389,6 +385,7 @@ class Attention(nn.Cell):
     def _attn(self, query, key, value, attention_mask):
         """
         Get the weighted score along the seq_length
+
         Inputs:
             query: the query matrix
             key: the key matrix
@@ -416,10 +413,11 @@ class Attention(nn.Cell):
         adder = self.mul(multiplu_out, self.multiply_data)
         attention_scores = self.add(adder, score)
 
+        #attention_scores = P.Cast()(attention_scores, ori_dtype)
         shape = F.shape(attention_scores)
         attention_probs = self.softmax(
             F.reshape(attention_scores,
-                      (shape[0], -1, shape[-1])))
+                      (shape[0], -1, shape[-1])))  # yzz modify
         attention_probs = P.Cast()(attention_probs, ori_dtype)
         attention_probs = F.reshape(attention_probs, shape)
 
@@ -445,23 +443,27 @@ class Block(nn.Cell):
     def __init__(self, config, layer_idx):
         super(Block, self).__init__()
         scale = 1 / math.sqrt(2.0 * config.num_layers)
+        #scale = 1.0
         if config.self_layernorm:
             self.layernorm1 = LayerNorm((config.embedding_size,), config.dp).to_float(mstype.float32)
             self.layernorm2 = LayerNorm((config.embedding_size,), config.dp).to_float(mstype.float32)
         else:
-            self.layernorm1 = nn.LayerNorm(
-                (config.embedding_size,)).to_float(mstype.float32)
+            self.layernorm1 = nn.LayerNorm((config.embedding_size,)).to_float(mstype.float32)
             self.layernorm1.layer_norm.shard(((config.dp, 1, 1), (1,), (1,)))
-            self.layernorm2 = nn.LayerNorm(
-                (config.embedding_size,)).to_float(mstype.float32)
+            self.layernorm2 = nn.LayerNorm((config.embedding_size,)).to_float(mstype.float32)
             self.layernorm2.layer_norm.shard(((config.dp, 1, 1), (1,), (1,)))
 
+        self.layernorm1.gamma.parallel_optimizer = False
+        self.layernorm1.beta.parallel_optimizer = False
         self.attention = Attention(config, scale, layer_idx)
+        self.layernorm2.gamma.parallel_optimizer = False
+        self.layernorm2.beta.parallel_optimizer = False
         self.output = Output(config, scale)
         self.post_layernorm_residual = config.post_layernorm_residual
         self.add = P.TensorAdd().shard(((config.dp, 1, 1), (config.dp, 1, 1)))
-        self.add_last = P.TensorAdd().shard(((config.dp, 1, 1), (config.dp, 1, 1)))
-        self.add_last.recompute(False)
+        self.last_add = P.TensorAdd().shard(
+            ((config.dp, 1, 1), (config.dp, 1,
+                                 1))).add_prim_attr("recompute", False)
         self.dtype = config.compute_dtype
 
     def construct(self, x, input_mask, layer_past=None):
@@ -478,44 +480,10 @@ class Block(nn.Cell):
         output_x = F.cast(output_x, self.dtype)
         mlp_logit = self.output(output_x)
         if self.post_layernorm_residual:
-            output = self.add_last(output_x, mlp_logit)
+            output = self.last_add(output_x, mlp_logit)
         else:
-            output = self.add_last(x, mlp_logit)
+            output = self.last_add(x, mlp_logit)
         return output, layer_present
-
-
-class PANGUALPHA_EmbeddingPipeLine(nn.Cell):
-    def __init__(self, config):
-        super(PANGUALPHA_EmbeddingPipeLine, self).__init__()
-        self.word_embedding = EmbeddingLookupPipeline(config)
-        self.position_embedding = nn.Embedding(config.seq_length,
-                                               config.embedding_size,
-                                               embedding_table=Normal(0.02))
-        self.position_embedding.gather.shard(((1, 1), (config.dp ,)))
-        self.position_embedding.expand.shard(((config.dp, 1),))
-        self.add = P.TensorAdd().shard(((config.dp, 1, 1), (config.dp, 1, 1)))
-        # self.dropout = nn.Dropout(1 - config.dropout_rate)
-        # self.dropout.dropout_gen_mask.shard(((config.dp, 1, 1),))
-        # self.dropout.dropout_do_mask.shard(((config.dp, 1, 1),))
-
-    def construct(self, input_ids, table, input_position):
-        input_embedding = self.word_embedding(input_ids, table)
-        position_embedding = self.position_embedding(input_position)
-        hidden_states = self.add(input_embedding, position_embedding)
-        # hidden_states = self.dropout(hidden_states)
-        hidden_states = P.Cast()(hidden_states, mstype.float16)
-        return hidden_states
-
-
-class PANGUALPHA_Mask(nn.Cell):
-    def __init__(self, config):
-        super(PANGUALPHA_Mask, self).__init__()
-        self.get_attention_mask = AttentionMask(config)
-        self.dtype = config.compute_dtype
-        self.expand_dims = P.ExpandDims().shard(((config.dp, 1, 1),))
-    def construct(self, input_mask, attention_mask):
-        attention_mask = self.expand_dims(attention_mask, 1)
-        return attention_mask
 
 
 class QueryLayerAttention(Attention):
@@ -593,82 +561,6 @@ class QueryLayer(nn.Cell):
             output = self.last_add(x, mlp_logit)
         return output, layer_present
 
-class PANGUALPHA_ModelPipeline(nn.Cell):
-    """
-    The backbone of PANGUALPHA network
-    Args:
-        config(PANGUALPHAConfig): the config of network
-    Inputs:
-        input_ids: the tokenized inputs with datatype int32
-        input_mask: the mask indicating whether each position is a valid input
-        layer_past: the previous feature map
-    Returns:
-        output_state: Tensor, the output logit of backbone
-        present_layer: Tensor, the current feature map
-        embedding_table: Tensor, the embedding table for the vocabulary
-    """
-    def __init__(self, config):
-        super(PANGUALPHA_ModelPipeline, self).__init__()
-        self.pangu_alpha_embedding = PANGUALPHA_EmbeddingPipeLine(config).set_comm_fusion(1)
-        self.pangu_alpha_embedding.stage = 0
-        self.pangu_alpha_mask = PANGUALPHA_Mask(config)
-        self.blocks = nn.CellList()
-        dropout_recompute = False
-        self.top_query_embedding = nn.Embedding(config.seq_length, config.embedding_size,
-                                                embedding_table=TruncatedNormal(0.02))
-        self.top_query_embedding.gather.shard(((1, 1), (config.dp,)))
-        self.top_query_embedding.expand.shard(((config.dp, 1),))
-        for i in range(config.num_layers):
-            if i == config.num_layers - 1:
-                self.top_query_embedding.set_comm_fusion(2)
-                self.top_query_embedding.stage = i * config.stage_num // config.num_layers
-                per_block = QueryLayer(config).set_comm_fusion(2)
-            else:
-                per_block = Block(config, i + 1).set_comm_fusion(2)
-            per_block.stage = i * config.stage_num // config.num_layers
-            per_block.recompute()
-            self.blocks.append(per_block)
-            # if not dropout_recompute:
-            #     per_block.attention.dropout.dropout_gen_mask.recompute(False).add_prim_attr("_side_effect", True)
-            #     per_block.attention.prob_dropout.dropout_gen_mask.recompute(False).add_prim_attr("_side_effect", True)
-            #     per_block.output.dropout.dropout_gen_mask.recompute(False).add_prim_attr("_side_effect", True)
-
-        if config.self_layernorm:
-            self.layernorm = LayerNorm((config.embedding_size,), config.dp).to_float(mstype.float32)
-        else:
-            self.layernorm = nn.LayerNorm(
-                (config.embedding_size,)).to_float(mstype.float32)
-            self.layernorm.layer_norm.shard(((config.dp, 1, 1), (1,), (1,)))
-        self.layernorm.set_comm_fusion(2)
-        #self.layernorm.set_comm_fusion(3)
-        self.layernorm.stage = config.stage_num - 1
-        self.use_past = config.use_past
-        self.past = tuple([None] * config.num_layers)
-        self.dtype = config.compute_dtype
-        self.num_layers = config.num_layers
-
-    def construct(self, input_ids, input_mask, table, input_position, attention_mask, layer_past=None):
-        """PANGUALPHA model"""
-        if not self.use_past:
-            layer_past = self.past
-
-        hidden_states = self.pangu_alpha_embedding(input_ids, table, input_position)
-        attention_mask = self.pangu_alpha_mask(input_mask, attention_mask)
-
-        present_layer = ()
-        for i in range(self.num_layers-1):
-            hidden_states, present = self.blocks[i](hidden_states,
-                                                    attention_mask, layer_past)
-            present_layer = present_layer + (present,)
-        top_query_hidden_states = self.top_query_embedding(input_position)
-        hidden_states, present = self.blocks[self.num_layers-1](hidden_states, top_query_hidden_states,
-                                                                attention_mask, layer_past)
-        present_layer = present_layer + (present,)
-        output_state = self.layernorm(hidden_states)
-        output_state = F.cast(output_state, self.dtype)
-        return output_state, present_layer
-
-
 class PANGUALPHA_Model(nn.Cell):
     """
     The backbone of PANGUALPHA network
@@ -683,38 +575,34 @@ class PANGUALPHA_Model(nn.Cell):
         present_layer: Tensor, the current feature map
         embedding_table: Tensor, the embedding table for the vocabulary
     """
-
     def __init__(self, config):
         super(PANGUALPHA_Model, self).__init__()
         self.get_attention_mask = AttentionMask(config)
         self.word_embedding = EmbeddingLookup(config).set_comm_fusion(1)
-        self.eod_reset = config.eod_reset
-        if config.load_ckpt_path:
-            # Loading the embedding table from the ckpt path:
-            embedding_path = os.path.join(config.load_ckpt_path, 'position_embedding.npy')
-            if os.path.exists(embedding_path):
-                p_table = np.load(embedding_path)
-                position_table_param = Tensor(p_table, mstype.float32)
-            else:
-                raise ValueError(f"{embedding_path} file not exits, please check whether position_embedding file exit.")
-        else:
-            position_table_param = TruncatedNormal(0.02)
+
+        position_table = Tensor(np.random.randn(config.seq_length,config.embedding_size), mstype.float32)
+        top_table = Tensor(np.random.randn(config.seq_length,config.embedding_size), mstype.float32)
 
         self.position_embedding = nn.Embedding(
             config.seq_length,
             config.embedding_size,
-            embedding_table=position_table_param).set_comm_fusion(1)
+            embedding_table=position_table).set_comm_fusion(1)
         self.word_embedding.embedding_table.parallel_optimizer = False
         self.position_embedding.embedding_table.parallel_optimizer = False
         self.position_embedding.gather.shard(((1, 1), (config.dp,)))
         self.position_embedding.expand.shard(((config.dp, 1),))
+        #self.position_embedding.gather.shard(((config.mp, 1), (1,)))
+        #self.position_embedding.expand.shard(((1, 1),))
         self.blocks = nn.CellList()
         fusion_group_num = 4
         fusion_group_size = config.num_layers // fusion_group_num
         fusion_group_size = max(fusion_group_size, 1)
 
-        num_layers = config.num_layers - 1
+        num_layers = config.num_layers
+        if config.use_top_query_attention:
+            num_layers -= 1
         self.num_layers = num_layers
+        print("After setting the layer is:", num_layers, flush=True)
 
         for i in range(num_layers):
             per_block = Block(config, i + 1).set_comm_fusion(int(i / fusion_group_size) + 2)
@@ -746,40 +634,32 @@ class PANGUALPHA_Model(nn.Cell):
         # self.dropout = nn.Dropout(1 - config.dropout_rate)
         # self.dropout.dropout_gen_mask.shard(((config.dp, 1, 1),))
         # self.dropout.dropout_do_mask.shard(((config.dp, 1, 1),))
+        self.eod_reset = config.eod_reset
+        # assert self.eod_reset == True
+        if config.use_top_query_attention:
+            print("Using query layer...", flush=True)
+            self.top_query_embedding = nn.Embedding(config.seq_length, config.embedding_size, embedding_table=top_table)
+            self.top_query_embedding.embedding_table.parallel_optimizer = False
+            self.top_query_embedding.gather.shard(((1, 1), (config.dp,)))
+            self.top_query_embedding.expand.shard(((config.dp, 1),))
+            self.top_query_layer = QueryLayer(config)
+            # if config.use_recompute:
+            #     self.top_query_layer.recompute()
+            #
+            #     self.top_query_layer.output.dropout.dropout_gen_mask.recompute(False)
+            #     self.top_query_layer.attention.dropout.dropout_gen_mask.recompute(False)
+            #     self.top_query_layer.attention.prob_dropout.dropout_gen_mask.recompute(False)
+            #
+            #     self.top_query_layer.output.dropout.dropout_gen_mask.add_prim_attr("_side_effect", True)
+            #     self.top_query_layer.attention.dropout.dropout_gen_mask.add_prim_attr("_side_effect", True)
+            #     self.top_query_layer.attention.prob_dropout.dropout_gen_mask.add_prim_attr("_side_effect", True)
 
-        if config.load_ckpt_path:
-            # Loading the embedding table from the ckpt path:
-            embedding_path = os.path.join(config.load_ckpt_path, 'top_query_embedding.npy')
-            if os.path.exists(embedding_path):
-                top_query_table = np.load(embedding_path)
-                top_query_table_param = Tensor(top_query_table, mstype.float32)
-            else:
-                raise ValueError(f"{embedding_path} file not exits, please check whether top_query_embedding file exist.")
-        else:
-            top_query_table_param = TruncatedNormal(0.02)
+            self.top_query_layer.set_comm_fusion(int((config.num_layers - 1) / fusion_group_num) + 2)
+        self.use_top_query_attention = config.use_top_query_attention
 
-        self.top_query_embedding = nn.Embedding(config.seq_length, config.embedding_size, \
-                                                embedding_table=top_query_table_param).set_comm_fusion(
-            int((config.num_layers - 1) / fusion_group_num) + 2)
-        self.top_query_embedding.embedding_table.parallel_optimizer = False
-        self.top_query_embedding.gather.shard(((1, 1), (config.dp,)))
-        self.top_query_embedding.expand.shard(((config.dp, 1),))
-        self.top_query_layer = QueryLayer(config)
-
-        self.top_query_layer.recompute()
-
-        # self.top_query_layer.output.dropout.dropout_gen_mask.recompute(False)
-        # self.top_query_layer.attention.dropout.dropout_gen_mask.recompute(False)
-        # self.top_query_layer.attention.prob_dropout.dropout_gen_mask.recompute(False)
-        #
-        # self.top_query_layer.output.dropout.dropout_gen_mask.add_prim_attr("_side_effect", True)
-        # self.top_query_layer.attention.dropout.dropout_gen_mask.add_prim_attr("_side_effect", True)
-        # self.top_query_layer.attention.prob_dropout.dropout_gen_mask.add_prim_attr("_side_effect", True)
-
-        self.top_query_layer.set_comm_fusion(int((config.num_layers - 1) / fusion_group_num) + 2)
 
     def construct(self, input_ids, input_mask, input_position=None, attention_mask=None, layer_past=None):
-        """PanGu Alpha model"""
+        """PANGUALPHA model"""
         if not self.use_past:
             layer_past = self.past
 
@@ -789,7 +669,6 @@ class PANGUALPHA_Model(nn.Cell):
             input_position = F.tuple_to_array(F.make_range(seq_length))
             input_position = P.Tile()(input_position, (batch_size, 1))
             attention_mask = self.get_attention_mask(input_mask)
-
         position_embedding = self.position_embedding(input_position)
         hidden_states = self.add(input_embedding, position_embedding)
         # hidden_states = self.dropout(hidden_states)
@@ -805,10 +684,11 @@ class PANGUALPHA_Model(nn.Cell):
         output_state = self.layernorm(hidden_states)
         output_state = F.cast(output_state, self.dtype)
 
-        top_query_hidden_states = self.top_query_embedding(input_position)
-        output_state, present = self.top_query_layer(output_state, top_query_hidden_states,
-                                                     attention_mask, layer_past)
-        present_layer = present_layer + (present,)
+        if self.use_top_query_attention:
+            top_query_hidden_states = self.top_query_embedding(input_position)
+            output_state, present = self.top_query_layer(output_state, top_query_hidden_states,
+                                                         attention_mask, layer_past)
+            present_layer = present_layer + (present,)
 
         return output_state, present_layer, embedding_table
 
@@ -829,7 +709,7 @@ class PANGUALPHA_Head(nn.Cell):
         if config.word_emb_dp:
             self.matmul = P.MatMul(transpose_b=True).shard(((config.dp, 1), (1, 1)))
         else:
-            self.matmul = P.MatMul(transpose_b=True).shard(((config.dp, 1), (config.mp, 1)))
+            self.matmul = P.MatMul(transpose_b=True).shard(((config.dp, config.mp), (1, config.mp)))
         self.embedding_size = config.embedding_size
         self.log_softmax = P.LogSoftmax(axis=-1)
         self.dtype = config.compute_dtype
@@ -840,34 +720,6 @@ class PANGUALPHA_Head(nn.Cell):
         logits = self.matmul(state, self.cast(embedding_table, self.dtype))
         return logits
 
-
-class PANGUALPHAPipeline(nn.Cell):
-    """
-    The PANGUALPHA network consisting of two parts the backbone and the head
-    Args:
-        config(PANGUALPHAConfig): the config of network
-    Inputs:
-        input_ids: the tokenized inputs
-        input_mask: the mask indicating whether each position is a valid input
-        past: the previous feature map
-    Returns:
-        logits: Tensor: the logits of the corresponding inputs with shape (batch_size, seq_length, vocab_size)
-    """
-    def __init__(self, config):
-        super(PANGUALPHAPipeline, self).__init__()
-        self.backbone = PANGUALPHA_ModelPipeline(config)
-        self.head = PANGUALPHA_Head(config)
-        self.head.stage = config.stage_num - 1
-        self.vocab_size = config.vocab_size
-        self.embedding_size = config.embedding_size
-        self.embedding_table = Parameter(initializer(
-            Normal(0.02), [self.vocab_size, self.embedding_size]),
-            name="embedding_table")
-
-    def construct(self, input_ids, input_mask, input_position, attention_mask, past=None):
-        output_states, _ = self.backbone(input_ids, input_mask, self.embedding_table, input_position, attention_mask, past)
-        logits = self.head(output_states, self.embedding_table)
-        return logits
 
 class PANGUALPHA(nn.Cell):
     """
@@ -891,6 +743,7 @@ class PANGUALPHA(nn.Cell):
             input_ids, input_mask, input_position, attention_mask, past)
         logits = self.head(output_states, embedding_table)
         return logits
+
 
 class CrossEntropyLoss(nn.Cell):
     """
@@ -928,8 +781,6 @@ class CrossEntropyLoss(nn.Cell):
         self.mul2 = P.Mul().shard(((1,), (1,)))
         self.add2 = P.TensorAdd()
         self.div2 = P.RealDiv()
-        if config.stage_num > 1:
-            self.div2.add_prim_attr("end", 0)
 
     def construct(self, logits, label, input_mask):
         logits = F.cast(logits, mstype.float32)
@@ -956,87 +807,11 @@ class CrossEntropyLoss(nn.Cell):
         return loss
 
 
-class MicroBatch(nn.Cell):
-    def __init__(self, config):
-        super().__init__()
-        self.micro_slice = P.StridedSlice().shard(((1, 1),))
-        self.micro_attention_slice = P.StridedSlice().shard(((1, 1),))
-        self.shape = P.Shape()
-        self.stage_num = config.micro_size
-        self.seq_len =  config.seq_length
-        self.slice_mask = P.StridedSlice().shard(((1, 1, 1),))
-
-    def construct(self, x, i, input_position, attention_mask):
-        input_shape = self.shape(x)
-        micro_batch_begin = (i * input_shape[0] // self.stage_num, 0)
-        micro_batch_end = ((i + 1) * input_shape[0] // self.stage_num, input_shape[1])
-        micro_batch_stride = (1, 1)
-        micro_input = self.micro_slice(x, micro_batch_begin, micro_batch_end, micro_batch_stride)
-        micro_input_position_begin = (i * input_shape[0] // self.stage_num, 0)
-        micro_input_position_end = ((i + 1) * input_shape[0] // self.stage_num, self.seq_len)
-        micro_input_position = self.micro_attention_slice(input_position, micro_input_position_begin, micro_input_position_end, micro_batch_stride)
-        micro_attention_mask_begin = (i * input_shape[0] // self.stage_num, 0, 0)
-        micro_attention_mask_end = ((i + 1) * input_shape[0] // self.stage_num, self.seq_len, self.seq_len)
-        micro_attention_mask_stride = (1, 1 ,1)
-        micro_attention_mask = self.slice_mask(attention_mask, micro_attention_mask_begin, micro_attention_mask_end, micro_attention_mask_stride)
-        return micro_input, micro_input_position, micro_attention_mask
-
-
-class PANGUALPHAWithLossPipeline(nn.Cell):
-    """
-    PANGUALPHA training loss
-    Args:
-        network: backbone network of PANGUALPHA
-        loss: loss function, e.g., crossentropy
-        eos_token: the end_of_sentence token
-    Inputs:
-        input_ids: the tokenized inputs
-        past: the previous feature map
-    Returns:
-        output: Tensor, the loss of the network
-    """
-    def __init__(self, config, network, loss, eos_token=6):
-        super(PANGUALPHAWithLossPipeline, self).__init__(auto_prefix=False)
-        self.network = network
-        self.loss = loss
-        self.eos_token = eos_token
-        self.slice = P.StridedSlice().shard(((config.dp, 1),))
-        self.not_equal = P.NotEqual().shard(((config.dp, 1), ()))
-        self.batch_size = config.batch_size
-        self.len = config.seq_length
-        self.micro_batch_step = config.micro_size
-        self.micro_input = nn.CellList()
-        self.slice_mask = P.StridedSlice().shard(((config.dp, 1, 1),))
-        for i in range(self.micro_batch_step):
-            micro = MicroBatch(config)
-            micro.micro_slice.add_prim_attr("micro", i)
-            micro.micro_slice.add_prim_attr("start", i)
-            self.micro_input.append(micro)
-
-    def construct(self, input_ids, input_position, attention_mask):
-        #tokens = input_ids[:, :-1]
-        ret = None
-        for i in range(self.micro_batch_step):
-            micro_input, micro_input_position, micro_attention_mask = self.micro_input[i](input_ids, i, input_position, attention_mask)
-            tokens = self.slice(micro_input, (0, 0), (self.batch_size // self.micro_batch_step, -1), (1, 1))
-
-            input_mask = F.cast(self.not_equal(tokens, self.eos_token), mstype.float32)
-            logits = self.network(tokens, input_mask, micro_input_position, micro_attention_mask)
-            labels = self.slice(micro_input, (0, 1), (self.batch_size // self.micro_batch_step,
-                                                      self.len + 1), (1, 1))
-            output = self.loss(logits, labels, input_mask)
-            if ret is not None:
-                ret = ret + output
-            else:
-                ret = output
-        return ret
-
-
 class PANGUALPHAWithLoss(nn.Cell):
     """
     PANGUALPHA training loss
     Args:
-        network: backbone network of PANGUALPHA
+        network: backbone network of PANGUALPHA2/3
         loss: loss function, e.g., crossentropy
         eos_token: the end_of_sentence token
     Inputs:
@@ -1045,7 +820,6 @@ class PANGUALPHAWithLoss(nn.Cell):
     Returns:
         output: Tensor, the loss of the network
     """
-
     def __init__(self, config, network, loss, eos_token=6):
         super(PANGUALPHAWithLoss, self).__init__(auto_prefix=False)
         self.network = network
@@ -1055,31 +829,77 @@ class PANGUALPHAWithLoss(nn.Cell):
         self.not_equal = P.NotEqual().shard(((config.dp, 1), ()))
         self.batch_size = config.batch_size
         self.len = config.seq_length
-        self.slice_mask = P.StridedSlice().shard(((config.dp, 1, 1),))
+        self.eod_reset = config.eod_reset
+        if self.eod_reset:
+            self.slice_mask = P.StridedSlice().shard(((config.dp, 1, 1),))
 
     def construct(self, input_ids, input_position=None, attention_mask=None):
-
+        #tokens = input_ids[:, :-1]
         tokens = self.slice(input_ids, (0, 0), (self.batch_size, -1), (1, 1))
 
-        input_position = self.slice(input_position, (0, 0), (self.batch_size, self.len), (1, 1))
-        attention_mask = self.slice_mask(attention_mask, (0, 0, 0),
-                                         (self.batch_size, self.len, self.len),
-                                         (1, 1, 1))
+        if self.eod_reset:
+            input_position = self.slice(input_position, (0, 0), (self.batch_size, self.len), (1, 1))
+            attention_mask = self.slice_mask(attention_mask, (0, 0, 0),
+                                             (self.batch_size, self.len, self.len),
+                                             (1, 1, 1))
 
         input_mask = F.cast(self.not_equal(tokens, self.eos_token),
                             mstype.float32)
         logits = self.network(tokens, input_mask, input_position, attention_mask)
+        #labels = input_ids[:, 1:]
         labels = self.slice(input_ids, (0, 1), (self.batch_size, self.len + 1),
                             (1, 1))
         output = self.loss(logits, labels, input_mask)
         return output
 
+class PANGUALPHAWithLoss2(nn.Cell):
+    """
+    PANGUALPHA training loss
+    Args:
+        network: backbone network of PANGUALPHA2/3
+        loss: loss function, e.g., crossentropy
+        eos_token: the end_of_sentence token
+    Inputs:
+        input_ids: the tokenized inputs
+        past: the previous feature map
+    Returns:
+        output: Tensor, the loss of the network
+    """
+    def __init__(self, config, network, loss, eos_token=6):
+        super(PANGUALPHAWithLoss2, self).__init__(auto_prefix=False)
+        self.network = network
+        self.loss = loss
+        self.eos_token = eos_token
+        self.slice = P.StridedSlice().shard(((config.dp, 1),))
+        self.not_equal = P.NotEqual().shard(((config.dp, 1), ()))
+        self.batch_size = config.batch_size
+        self.len = config.seq_length
+        self.eod_reset = config.eod_reset
+        if self.eod_reset:
+            self.slice_mask = P.StridedSlice().shard(((config.dp, 1, 1),))
+
+    def construct(self, input_ids, mask_ids_input, input_position=None, attention_mask=None):
+        #tokens = input_ids[:, :-1]
+        tokens = self.slice(input_ids, (0, 0), (self.batch_size, -1), (1, 1))
+
+        if self.eod_reset:
+            input_position = self.slice(input_position, (0, 0), (self.batch_size, self.len), (1, 1))
+            attention_mask = self.slice_mask(attention_mask, (0, 0, 0),
+                                             (self.batch_size, self.len, self.len),
+                                             (1, 1, 1))
+
+        input_mask = F.cast(self.not_equal(tokens, self.eos_token), mstype.float32)
+        logits = self.network(tokens, input_mask, input_position, attention_mask)
+        #labels = input_ids[:, 1:]
+        labels = self.slice(input_ids, (0, 1), (self.batch_size, self.len + 1), (1, 1))
+        output = self.loss(logits, labels, mask_ids_input)
+        return output
 
 class EvalNet(nn.Cell):
     """
     PANGUALPHA evaluation net
     Args:
-        backbone: backbone network of PANGUALPHA
+        backbone: backbone network of PANGUALPHA2/3
         generate: enable generate mode
     Inputs:
         input_ids: the tokenized inpus
@@ -1089,48 +909,22 @@ class EvalNet(nn.Cell):
     def __init__(self, backbone, generate=False):
         super(EvalNet, self).__init__(auto_prefix=False)
         self.backbone = backbone
-        self.argmax = P.ArgMaxWithValue()
-        self.generate = generate
-        self.topk = P.TopK(sorted=True).shard(((1, 1),))
-        self.log_softmax = P.Softmax(axis=-1)
-
-    def construct(self, input_ids):
-        """evaluation net"""
-        input_mask = F.cast(F.not_equal(input_ids, 6), mstype.float32)
-        logits = self.backbone(input_ids, input_mask)
-        value, index = self.topk(logits, 5)
-        probs = self.log_softmax(value)
-        return logits
-
-
-class EvalNet_p(nn.Cell):
-    """
-    PANGUALPHA evaluation net
-
-    Args:
-        backbone: backbone network of PANGUALPHA2/3
-        generate: enable generate mode
-
-    Inputs:
-        input_ids: the tokenized inpus
-
-    Returns:
-        outputs: Tensor, corresponding output for different tasks
-    """
-    def __init__(self, backbone, generate=False):
-        super(EvalNet_p, self).__init__(auto_prefix=False)
-        self.backbone = backbone
         self.argmax = P.Argmax()
         self.generate = generate
+        self.topk = P.TopK(sorted=True).shard(((1, 1),))
 
     def construct(self, input_ids):
         """evaluation net"""
-        input_mask = F.cast(F.not_equal(input_ids, 6), mstype.float16)
+        input_mask = F.cast(F.not_equal(input_ids, 0), mstype.float32)
         logits = self.backbone(input_ids, input_mask)
-        outputs = None
+        value, index = self.topk(logits, 5)
+        return value, index
+        """
         if self.generate:
             outputs = nn.LogSoftmax()(logits)
             outputs = F.tensor_pow(np.e, outputs)
         else:
             outputs = self.argmax(logits)
         return outputs
+        """
+
