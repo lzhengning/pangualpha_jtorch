@@ -1,4 +1,4 @@
-这是盘古α模型的 pytorch 版本。可以在 pytorch 框架上进行推理、训练、finetune。
+这是盘古α模型的 pytorch 实现版本。可以在 pytorch 框架上进行推理、训练、finetune。
 
 出发点：Mindspore 是新的深度学习框架，很多人没用过，所以把 mindspore 模型转成 pytorch 模型可以让更多人使用我们的盘古模型，让使用者不但可以体验我们的大模型，还可以对我们的模型进行 finetune 。
 
