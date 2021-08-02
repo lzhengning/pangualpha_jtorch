@@ -15,6 +15,7 @@ Megatron 是英伟达深度学习应用研究团队开发的一款大型、强�
 | 模型文件                                                     | Md5                              | 大小 | 参数配置                                                     |
 | ------------------------------------------------------------ | -------------------------------- | ---- | ------------------------------------------------------------ |
 | [Pangu-alpha_2.6B_fp16_mgt.zip](https://git.openi.org.cn/attachments/72aec03d-6bdb-4652-ac2a-8099db4b0bed) | 28f6dd2ec5d1df2fd22ec5f4a66f51e7 | 4.6G | num-layers : 31<br />hidden-size : 2560<br />num-attention-heads : 32 |
+| [Pangu-alpha_13B_fp16_mgt.zip](https://git.openi.org.cn/attachments/937b3e2d-98fb-4871-9691-b32afb5a4d79?type=0) | e6f7a05cbdf8ba8d69e6786e48344f6f | 22G | num-layers : 39<br />hidden-size : 5120<br />num-attention-heads : 40 |
 
 注：`num-layers` 等于 Pangu 项目中的 `num-layers - 1`
 
