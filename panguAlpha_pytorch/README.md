@@ -26,7 +26,7 @@ Megatron 是英伟达深度学习应用研究团队开发的一款大型、强�
 
 `--out-seq-length`：生成的最大 token 数
 
-`--top_p`：选择 token 的概率，越小生成样本多样性越高
+`--top_k`：k 值越大生成样本多样性越高
 
 ```
 python tool/generate_samples_Pangu.py \
@@ -44,7 +44,7 @@ python tool/generate_samples_Pangu.py \
 --temperature 1.0 \
 --vocab-file megatron/tokenizer/bpe_4w_pcl/vocab \
 --num-samples 0 \
---top_p 0.9 \
+--top_k 10 \
 --finetune
 ```
 

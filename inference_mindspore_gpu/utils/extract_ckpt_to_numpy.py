@@ -12,9 +12,10 @@ if __name__ == '__main__':
 
 
     pwd = '/userhome/model/'
-    save = '/userhome/model/panguAlpha_13b_fp16_NumpyCkpt/'
-    # file_name = pwd + 'PanguAlpha_2.6B_fp16.ckpt'
-    file_name = pwd + 'PanguAlpha_13b_fp16.ckpt'
+    # save = '/userhome/model/panguAlpha_13b_fp16_NumpyCkpt/'
+    save = '/userhome/model/panguAlpha_2.6b_fp16_NumpyCkpt/'
+    file_name = pwd + 'PanguAlpha_2.6B_fp16.ckpt'
+    # file_name = pwd + 'PanguAlpha_13b_fp16.ckpt'
     # file_name = '/Users/sam/Downloads/PanguAlpha_2.6B_fp16.ckpt'
     param_dict1 = load_checkpoint(file_name)
     if not os.path.exists(save):
