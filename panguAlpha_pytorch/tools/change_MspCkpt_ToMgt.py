@@ -46,6 +46,8 @@ def get_model(model_type):
         from pretrain_bert import model_provider
     elif model_type == 'GPT2':
         from pretrain_gpt2 import model_provider
+    elif model_type == 'Pangu':
+        from pretrain_gpt2 import model_provider
     elif model_type == 'RACE':
         from tasks.race.finetune import model_provider
     elif model_type == ['MNLI', 'QQP']:
@@ -64,20 +66,23 @@ def get_model(model_type):
     return model
 
 
-def get_mp_merge_args(parser):
+def get_change_ckpt_args(parser):
     """Provide extra arguments required for merging."""
     group = parser.add_argument_group(title='mp merge')
 
     group.add_argument('--model-type', type=str, required=True,
-                       choices=['BERT', 'GPT2', 'RACE', 'MNLI', 'QQP'],
+                       choices=['BERT', 'GPT2', 'Pangu', 'RACE', 'MNLI', 'QQP'],
                        help='Type of the mdoel.')
+    group.add_argument('--npy-ckpt-path', type=str, required=True,
+                       help='path of npy checkpoint.')
 
     return parser
 
 
 
-def loadModelFromNp(sd, num_layers):
-    npCkptPath = '/userhome/model/panguAlphaNumpyCkpt/'
+def loadModelFromNp(sd, args):
+    num_layers = args.num_layers
+    npCkptPath = args.npy_ckpt_path
     languageModel = sd['model']['language_model']
     loadEmbeddingFromNp(npCkptPath, languageModel)
     transformer = sd['model']['language_model']['transformer']
@@ -320,7 +325,7 @@ def loadQueryLayerFromNp(npCkptPath, transformer):
 def main():
     # test_split_merge()
     # Args
-    args = _parse_args(extra_args_provider=get_mp_merge_args)
+    args = _parse_args(extra_args_provider=get_change_ckpt_args)
     model_type = args.model_type
     # orig_model_parallel_size = args.model_parallel_size
     args.model_parallel_size = 1
@@ -347,7 +352,7 @@ def main():
     # initialize_megatron(args_defaults={'tokenizer_type': 'GPT2BPETokenizer'})
 
     merged_model = get_model(model_type)
-    iteration = 1000
+    iteration = 76000   #any num is ok
 
     # Save the model.
     args.model_parallel_size = 1
@@ -355,10 +360,10 @@ def main():
     sd = {}
     sd['model'] = merged_model.state_dict_for_save_checkpoint()
     sd['iteration'] = iteration
-    merged_path = os.path.join(args.load, 'merged_v3')
+    merged_path = os.path.join(args.npy_ckpt_path, 'merged')
     checkpoint_name = get_checkpoint_name(merged_path, iteration)
     ensure_directory_exists(checkpoint_name)
-    loadModelFromNp(sd, args.num_layers)
+    loadModelFromNp(sd, args)
     print('> saving merged model to {}'.format(checkpoint_name))
     torch.save(sd, checkpoint_name)
 

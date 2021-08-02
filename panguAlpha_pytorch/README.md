@@ -51,6 +51,8 @@ python tool/generate_samples_Pangu.py \
 
 
 
+
+
 # Finetune
 
 ##### 1、准备训练数据
@@ -70,21 +72,21 @@ python tool/generate_samples_Pangu.py \
 `--mp-model-save`：切分后，模型的保存路径
 
 ```
-python tools/split_full_model_into_mp_model.py /
---model-parallel-size 1 /
---num-mp-model 2 /
---num-layers 31 /
---hidden-size 2560 /
---load /**ful model path**/ /
---mp-model-save /**mp model save path**/ /
---num-attention-heads 32 /
---max-position-embeddings 1024 /
---tokenizer-type GPT2BPETokenizer /
---fp16 /
---batch-size 1 /
---seq-length 1024 /
---model-type Pangu /
---vocab-file megatron/tokenizer/bpe_4w_pcl/vocab /
+python tools/split_full_model_into_mp_model.py \
+--model-parallel-size 1 \
+--num-mp-model 2 \
+--num-layers 31 \
+--hidden-size 2560 \
+--load /**ful model path**/ \
+--mp-model-save /**mp model save path**/ \
+--num-attention-heads 32 \
+--max-position-embeddings 1024 \
+--tokenizer-type GPT2BPETokenizer \
+--fp16 \
+--batch-size 1 \
+--seq-length 1024 \
+--model-type Pangu \
+--vocab-file megatron/tokenizer/bpe_4w_pcl/vocab \
 --finetune
 ```
 
