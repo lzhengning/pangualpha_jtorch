@@ -10,6 +10,8 @@ Megatron 是英伟达深度学习应用研究团队开发的一款大型、强�
 
 推荐使用英伟达的官方 docker 镜像`docker pull nvcr.io/nvidia/pytorch:20.03-py3`。需要安装 [NLTK](https://www.nltk.org/install.html)。
 
+也可直接下载我配好的[镜像文件](https://git.openi.org.cn/attachments/3e743b41-ab0a-4e2a-9bdb-066afc1c8740?type=0) ，`docker load -i ***.tar` 即可，使用`/opt/conda/bin/python`.
+
 # 模型文件下载
 
 | 模型文件                                                     | Md5                              | 大小 | 参数配置                                                     |
@@ -18,6 +20,9 @@ Megatron 是英伟达深度学习应用研究团队开发的一款大型、强�
 | [Pangu-alpha_13B_fp16_mgt.zip](https://git.openi.org.cn/attachments/937b3e2d-98fb-4871-9691-b32afb5a4d79?type=0) | e6f7a05cbdf8ba8d69e6786e48344f6f | 22G | num-layers : 39<br />hidden-size : 5120<br />num-attention-heads : 40 |
 
 注：`num-layers` 等于 Pangu 项目中的 `num-layers - 1`
+
+#精度
+模型转换需要先把 mindspore 的 ckpt 转为 numpy 的 npy 文件，然后再把 npy 文件加载到 pytorch 模型。该过程存在精度损失，所以 pytorch 模型的结果和 Pangu-Alpha 的 mindspore 版本的推理结果有一定的差异。暂时还没解决，正在寻找解决方案。
 
 # 推理
 
