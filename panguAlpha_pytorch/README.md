@@ -21,7 +21,7 @@ Megatron 是英伟达深度学习应用研究团队开发的一款大型、强�
 
 注：`num-layers` 等于 Pangu 项目中的 `num-layers - 1`
 
-#精度
+# 精度
 模型转换需要先把 mindspore 的 ckpt 转为 numpy 的 npy 文件，然后再把 npy 文件加载到 pytorch 模型。该过程存在精度损失，所以 pytorch 模型的结果和 Pangu-Alpha 的 mindspore 版本的推理结果有一定的差异。暂时还没解决，正在寻找解决方案。
 
 # 推理
