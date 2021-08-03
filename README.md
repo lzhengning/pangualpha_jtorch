@@ -14,6 +14,6 @@
 
 
 
-# pytorch 预训练、finetune、推理
+# pytorch 预训练、Finetune、推理
 
 [请查看](panguAlpha_pytorch/README.md)

@@ -1,4 +1,4 @@
-这是盘古α模型的 pytorch 版本。可以在 pytorch 框架上进行推理、训练、finetune。
+这是盘古α模型的 pytorch 实现版本。可以在 pytorch 框架上进行推理、训练、finetune。
 
 出发点：Mindspore 是新的深度学习框架，很多人没用过，所以把 mindspore 模型转成 pytorch 模型可以让更多人使用我们的盘古模型，让使用者不但可以体验我们的大模型，还可以对我们的模型进行 finetune 。
 
@@ -15,6 +15,7 @@ Megatron 是英伟达深度学习应用研究团队开发的一款大型、强�
 | 模型文件                                                     | Md5                              | 大小 | 参数配置                                                     |
 | ------------------------------------------------------------ | -------------------------------- | ---- | ------------------------------------------------------------ |
 | [Pangu-alpha_2.6B_fp16_mgt.zip](https://git.openi.org.cn/attachments/72aec03d-6bdb-4652-ac2a-8099db4b0bed) | 28f6dd2ec5d1df2fd22ec5f4a66f51e7 | 4.6G | num-layers : 31<br />hidden-size : 2560<br />num-attention-heads : 32 |
+| [Pangu-alpha_13B_fp16_mgt.zip](https://git.openi.org.cn/attachments/937b3e2d-98fb-4871-9691-b32afb5a4d79?type=0) | e6f7a05cbdf8ba8d69e6786e48344f6f | 22G | num-layers : 39<br />hidden-size : 5120<br />num-attention-heads : 40 |
 
 注：`num-layers` 等于 Pangu 项目中的 `num-layers - 1`
 
@@ -26,7 +27,7 @@ Megatron 是英伟达深度学习应用研究团队开发的一款大型、强�
 
 `--out-seq-length`：生成的最大 token 数
 
-`--top_p`：选择 token 的概率，越小生成样本多样性越高
+`--top_k`：k 值越大生成样本多样性越高
 
 ```
 python tool/generate_samples_Pangu.py \
@@ -44,9 +45,11 @@ python tool/generate_samples_Pangu.py \
 --temperature 1.0 \
 --vocab-file megatron/tokenizer/bpe_4w_pcl/vocab \
 --num-samples 0 \
---top_p 0.9 \
+--top_k 10 \
 --finetune
 ```
+
+
 
 
 
@@ -69,21 +72,21 @@ python tool/generate_samples_Pangu.py \
 `--mp-model-save`：切分后，模型的保存路径
 
 ```
-python tools/split_full_model_into_mp_model.py /
---model-parallel-size 1 /
---num-mp-model 2 /
---num-layers 31 /
---hidden-size 2560 /
---load /**ful model path**/ /
---mp-model-save /**mp model save path**/ /
---num-attention-heads 32 /
---max-position-embeddings 1024 /
---tokenizer-type GPT2BPETokenizer /
---fp16 /
---batch-size 1 /
---seq-length 1024 /
---model-type Pangu /
---vocab-file megatron/tokenizer/bpe_4w_pcl/vocab /
+python tools/split_full_model_into_mp_model.py \
+--model-parallel-size 1 \
+--num-mp-model 2 \
+--num-layers 31 \
+--hidden-size 2560 \
+--load /**ful model path**/ \
+--mp-model-save /**mp model save path**/ \
+--num-attention-heads 32 \
+--max-position-embeddings 1024 \
+--tokenizer-type GPT2BPETokenizer \
+--fp16 \
+--batch-size 1 \
+--seq-length 1024 \
+--model-type Pangu \
+--vocab-file megatron/tokenizer/bpe_4w_pcl/vocab \
 --finetune
 ```
 
