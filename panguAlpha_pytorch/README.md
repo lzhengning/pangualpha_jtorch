@@ -4,13 +4,18 @@
 
 Megatron 是英伟达深度学习应用研究团队开发的一款大型、强大的 transformer 算法库。这次的移植是在 Megatron 的基础上修改得到，主要工作内容包括了模型文件的转换、增加 query layer、修改模型切分策略。
 
-# 配置
+# 环境
 
 支持 python >= 3.6, pytorch >= 1.5, cuda >= 10, and nccl >= 2.6 版本.
 
 推荐使用英伟达的官方 docker 镜像`docker pull nvcr.io/nvidia/pytorch:20.03-py3`。需要安装 [NLTK](https://www.nltk.org/install.html)。
 
-也可直接下载我配好的[镜像文件](https://git.openi.org.cn/attachments/3e743b41-ab0a-4e2a-9bdb-066afc1c8740?type=0) ，`docker load -i ***.tar` 即可，使用`/opt/conda/bin/python`.
+也可直接下载配好的镜像：
+
+```
+docker pull yands/pangu-alpha-megatron-lm-nvidia-pytorch:20.03.2
+```
+使用`/opt/conda/bin/python`。
 
 # 模型文件下载
 
