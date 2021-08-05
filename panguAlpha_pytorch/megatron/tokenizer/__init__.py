@@ -15,3 +15,4 @@
 
 
 from .tokenizer import build_tokenizer
+from .tokenization_jieba import JIEBATokenizer

@@ -53,7 +53,7 @@ class JIEBATokenizer(object):
         self.sp = spm.SentencePieceProcessor(model_file=model_file)
         self.translator = str.maketrans(" \n", "\u2582\u2583")
 
-        self.eod_id = self.encoder['<eod>']
+        self.eod_id = self.encoder['<eot>']
         self.eot_id = self.encoder['<eot>']
         self.pad_id = self.encoder['<pad>']
         self.unk = 0

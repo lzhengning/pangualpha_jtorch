@@ -17,7 +17,6 @@
 
 import json
 import math
-
 import numpy as np
 import torch
 
@@ -34,6 +33,8 @@ def build_dataset(task):
         return _build_lambada_dataset()
     if task == 'WIKITEXT103':
         return _build_wikitext103_dataset()
+    if task == 'iflytek':
+        return _build_iflytek_dataset()
 
     raise NotImplementedError('dataset for {} task is not '
                               'implemented.'.format(task))
@@ -77,6 +78,43 @@ class _LMDataset(torch.utils.data.Dataset):
 
         return {'text': np.array(tokens), 'pad_mask': pad_mask}
 
+class _IflytekDataset(torch.utils.data.Dataset):
+
+    def __init__(self, tokens, seq_len, pad_idx, num_original_tokens,
+                 num_tokenized_tokens, overalapping_eval=None):
+        self.tokens = tokens
+        self.seq_len = seq_len
+        self.pad_idx = pad_idx
+        self.overalapping_eval = overalapping_eval
+        if self.overalapping_eval is None:
+            self.overalapping_eval = self.seq_len
+        self.overalapping_eval = max(1, self.overalapping_eval)
+        self.num_original_tokens = num_original_tokens
+        self.num_tokenized_tokens = num_tokenized_tokens
+        self.total_targets = len(self.tokens) - 1
+        # remove first sequence tokens
+        targets = max(self.total_targets - self.overalapping_eval, 0)
+        self.total_sequences = max(
+            math.ceil(targets / self.overalapping_eval) + 1, 1)
+
+    def __len__(self):
+        return self.total_sequences
+
+    def __getitem__(self, idx):
+        start_idx = idx * self.overalapping_eval
+        end_idx = start_idx + self.seq_len
+        tokens = self.tokens[start_idx:end_idx + 1]
+        num_tokens = len(tokens)
+        pad_mask = [1] * num_tokens
+        if num_tokens < self.seq_len + 1:
+            num_pad = (self.seq_len + 1 - num_tokens)
+            pad_mask += [0] * (num_pad)
+            tokens += [self.pad_idx] * num_pad
+        pad_mask = np.array(pad_mask[1:])
+        if self.overalapping_eval != self.seq_len and idx != 0:
+            pad_mask[:-self.overalapping_eval] *= 0
+
+        return {'text': np.array(tokens), 'pad_mask': pad_mask}
 
 class _LambadaDataset(torch.utils.data.Dataset):
 
@@ -150,6 +188,27 @@ def _build_wikitext103_dataset():
     num_original_tokens = len(entire_data.strip().split(" "))
     entire_data = get_detokenizer(args.valid_data[0])(entire_data)
     tokenized_data = tokenizer.tokenize(entire_data)
+    num_tokenized_tokens = len(tokenized_data)
+
+    val_dataset = _LMDataset(tokenized_data, args.seq_length, tokenizer.eod,
+                             num_original_tokens, num_tokenized_tokens,
+                             args.overlapping_eval)
+    print_rank_0(' > number of original tokens: {}, number of detokenized '
+                 'tokens: {}'.format(num_original_tokens, num_tokenized_tokens))
+
+    return val_dataset
+
+
+def _build_iflytek_dataset():
+    """"""
+    args = get_args()
+    tokenizer = get_tokenizer()
+
+    assert len(args.valid_data) == 1
+
+
+    tokenized_data = tokenizer.tokenize(entire_data)
+
     num_tokenized_tokens = len(tokenized_data)
 
     val_dataset = _LMDataset(tokenized_data, args.seq_length, tokenizer.eod,
