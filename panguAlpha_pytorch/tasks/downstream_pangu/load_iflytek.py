@@ -15,22 +15,9 @@ class iflytek_dataset(object):
         self.zc_cache = []
         self.data_path = '/userhome/dataset/cluedatasets/iflytek_public/'
         vocab_file = '/userhome/pclproject/gpt/Megatron-LM-1.1-Pangu/megatron/tokenizer/bpe_4w_pcl/vocab'
-        tmp0 = [
-            ('task', ['zero_shot']), #'zero_shot','one_shot','few_shot'
-            ('max_len', [25]), #None,200,100
-            ('tag_new_example', [True]), #True, False
-            ('few_shot_num_sample', [3]), #2,3,4
-            ('np_seed', [233]), #233,235,237,239
-            ('new_mask', [False]), #True, False
-            ('input_str_format', [
-                # "{label}：{sentence}",
-                "这是关于{label}的应用程序：{sentence}",
-            ])
-        ]
-        self.para_config_list = [{y0[0]:y1 for y0,y1 in zip(tmp0,x)} for x in itertools.product(*[x[1] for x in tmp0])]
 
-        # self.tokenizer = get_tokenizer()
-        self.tokenizer = JIEBATokenizer(vocab_file)
+        self.tokenizer = get_tokenizer()
+        # self.tokenizer = JIEBATokenizer(vocab_file)
         self.seq_length = 1024
         self.num_samples = 0
         print()
@@ -75,84 +62,84 @@ class iflytek_dataset(object):
         }
         return ret
 
-    def getSamples(self):
+    def getSamples(self, para_config):
         with open(os.path.join(self.data_path, 'train.json'), "r", encoding="utf-8") as fid:
             ground_truth = [json.loads(x) for x in fid]
         id_to_label = {int(x['label']):x['label_des'] for x in ground_truth}
 
-        for para_config_i in self.para_config_list:
-            task = para_config_i['task']
-            max_len = para_config_i['max_len']
-            tag_new_example = para_config_i['tag_new_example']
-            few_shot_num_sample = para_config_i['few_shot_num_sample']
-            np_seed = para_config_i['np_seed']
-            new_mask = para_config_i['new_mask']
-            input_str_format = para_config_i['input_str_format']
-            input_str_format_mask = input_str_format.rsplit('{',1)[0]
-            input_str_format_mask_tag_label = '{label}' in input_str_format_mask
-            np_seed = para_config_i['np_seed']
-            np_rng = np.random.default_rng(seed=np_seed) #must be same across model-parallel
-            with open(os.path.join(self.data_path, 'dev.json'), "r", encoding="utf-8") as fid:
-                tmp0 = [json.loads(x) for x in fid] #[:200]
-                ground_truth = [tmp0[x] for x in np_rng.permutation(len(tmp0))]
+        task = para_config['task']
+        max_len = para_config['max_len']
+        tag_new_example = para_config['tag_new_example']
+        few_shot_num_sample = para_config['few_shot_num_sample']
+        np_seed = para_config['np_seed']
+        new_mask = para_config['new_mask']
+        input_str_format = para_config['input_str_format']
+        input_str_format_mask = input_str_format.rsplit('{',1)[0]
+        input_str_format_mask_tag_label = '{label}' in input_str_format_mask
+        np_seed = para_config['np_seed']
+        np_rng = np.random.default_rng(seed=np_seed) #must be same across model-parallel
+        with open(os.path.join(self.data_path, 'dev.json'), "r", encoding="utf-8") as fid:
+            tmp0 = [json.loads(x) for x in fid] #[:200]
+            ground_truth = [tmp0[x] for x in np_rng.permutation(len(tmp0))]
 
-            z0 = []
-            zc_print_ind = 0
-            if not tag_new_example:
+        print('total num samples of iflytek dev dataset is : ',len(ground_truth))
+        z0 = []
+        zc_print_ind = 0
+        if not tag_new_example:
+            shot_to_example = self.load_iflytek_train_example_for_shot(self.data_path, num_sample=few_shot_num_sample,
+                                                                  np_rng=np_rng, max_len=max_len, input_str_format=input_str_format)
+            example = shot_to_example[task]
+        for instance in ground_truth:
+            zc_print_ind += 1
+            if tag_new_example:
                 shot_to_example = self.load_iflytek_train_example_for_shot(self.data_path, num_sample=few_shot_num_sample,
                                                                       np_rng=np_rng, max_len=max_len, input_str_format=input_str_format)
                 example = shot_to_example[task]
-            for instance in ground_truth:
-                zc_print_ind += 1
-                if tag_new_example:
-                    shot_to_example = self.load_iflytek_train_example_for_shot(self.data_path, num_sample=few_shot_num_sample,
-                                                                          np_rng=np_rng, max_len=max_len, input_str_format=input_str_format)
-                    example = shot_to_example[task]
 
-                true_label = instance['label_des']
-                tmp0 = sorted(list(set(id_to_label.values()) - {true_label}))
-                fake_label = [tmp0[x] for x in np_rng.permutation(len(tmp0))[:3]] #[:119]
-                instance_tf_label = [true_label] + fake_label
-                instance_tf_label = [instance_tf_label[x] for x in np_rng.permutation(len(instance_tf_label))] #shuffle
-                input_ids_list = []
-                loss_mask_list = []
-                label_list = []
-                input_str_list = []
-                for label_i in instance_tf_label:
-                    if input_str_format_mask_tag_label:
-                        tmp0 = example + input_str_format_mask.format(label=label_i)
-                    else:
-                        tmp0 = example + input_str_format_mask.format(sentence=instance['sentence'])
-                    tmp1 = example + input_str_format.format(label=label_i, sentence=instance['sentence'])
+            true_label = instance['label_des']
+            tmp0 = sorted(list(set(id_to_label.values()) - {true_label}))
+            fake_label = [tmp0[x] for x in np_rng.permutation(len(tmp0))[:3]] #[:119]
+            instance_tf_label = [true_label] + fake_label
+            instance_tf_label = [instance_tf_label[x] for x in np_rng.permutation(len(instance_tf_label))] #shuffle
+            input_ids_list = []
+            loss_mask_list = []
+            label_list = []
+            input_str_list = []
+            for label_i in instance_tf_label:
+                if input_str_format_mask_tag_label:
+                    tmp0 = example + input_str_format_mask.format(label=label_i)
+                else:
+                    tmp0 = example + input_str_format_mask.format(sentence=instance['sentence'])
+                tmp0 = self.tokenizer.tokenize(tmp0)
+                tmp1 = example + input_str_format.format(label=label_i, sentence=instance['sentence'])
 
-                    input_ids = self.tokenizer.tokenize(tmp1)[:self.seq_length]
-                    input_str_list.append(tmp1)
+                input_ids = self.tokenizer.tokenize(tmp1)[:self.seq_length]
+                input_str_list.append(tmp1)
 
-                    # tmp0 = tokenizer.tokenize(f"{example}{instance['sentence']}")
-                    # input_ids = tokenizer.tokenize(f"{example}{instance['sentence']}：{label_i}")[:config.seq_length]
+                # tmp0 = tokenizer.tokenize(f"{example}{instance['sentence']}")
+                # input_ids = tokenizer.tokenize(f"{example}{instance['sentence']}：{label_i}")[:config.seq_length]
 
-                    mask = np.zeros(self.seq_length)
-                    mask[len(tmp0):len(input_ids)] = 1
-                    # mask[:len(input_ids)] = 1
-                    input_ids = np.pad(input_ids, ((0,self.seq_length+1-len(input_ids)),), 'constant', constant_values=(0,self.tokenizer.pad_id))
-                    input_ids_list.append(input_ids)
-                    loss_mask_list.append(mask)
-                    label_list.append(label_i)
+                mask = np.zeros(self.seq_length)
+                mask[len(tmp0):len(input_ids)] = 1
+                # mask[:len(input_ids)] = 1
+                input_ids = np.pad(input_ids, ((0,self.seq_length+1-len(input_ids)),), 'constant', constant_values=(0,self.tokenizer.pad_id))
+                input_ids_list.append(input_ids)
+                loss_mask_list.append(mask)
+                label_list.append(label_i)
 
-                tmp0 = input_ids_list
-                tmp1 = loss_mask_list
-                label = [x for x,y in enumerate(label_list) if y==true_label][0]
-                yield {'input_ids_list':tmp0,
-                       "loss_mask_list":tmp1,
-                       'label':label
-                       }
-                # yield {'input_ids_list':tmp0,
-                #        "loss_mask_list":tmp1,
-                #        'label':label,
-                #        'input_str_list':input_str_list
-                #        }
-                # z0.append((tmp0,tmp1,label,input_str_list))
-            # return z0
+            tmp0 = input_ids_list
+            tmp1 = loss_mask_list
+            label = [x for x,y in enumerate(label_list) if y==true_label][0]
+            yield {'input_ids_list':tmp0,
+                   "loss_mask_list":tmp1,
+                   'label':label
+                   }
+            # yield {'input_ids_list':tmp0,
+            #        "loss_mask_list":tmp1,
+            #        'label':label,
+            #        'input_str_list':input_str_list
+            #        }
+            # z0.append((tmp0,tmp1,label,input_str_list))
 
 
 if __name__ == '__main__':

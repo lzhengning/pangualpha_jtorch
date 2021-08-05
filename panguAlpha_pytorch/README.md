@@ -4,11 +4,18 @@
 
 Megatron 是英伟达深度学习应用研究团队开发的一款大型、强大的 transformer 算法库。这次的移植是在 Megatron 的基础上修改得到，主要工作内容包括了模型文件的转换、增加 query layer、修改模型切分策略。
 
-# 配置
+# 环境
 
 支持 python >= 3.6, pytorch >= 1.5, cuda >= 10, and nccl >= 2.6 版本.
 
 推荐使用英伟达的官方 docker 镜像`docker pull nvcr.io/nvidia/pytorch:20.03-py3`。需要安装 [NLTK](https://www.nltk.org/install.html)。
+
+也可直接下载配好的镜像：
+
+```
+docker pull yands/pangu-alpha-megatron-lm-nvidia-pytorch:20.03.2
+```
+使用`/opt/conda/bin/python`。
 
 # 模型文件下载
 
@@ -19,6 +26,10 @@ Megatron 是英伟达深度学习应用研究团队开发的一款大型、强�
 
 注：`num-layers` 等于 Pangu 项目中的 `num-layers - 1`
 
+# 精度
+模型转换需要先把 mindspore 的 ckpt 转为 numpy 的 npy 文件，然后再把 npy 文件加载到 pytorch 模型。该过程存在精度损失，所以 pytorch 模型的结果和 Pangu-Alpha 的 mindspore 版本的推理结果有一定的差异。暂时还没解决，正在寻找解决方案。
+
+在 iflytek 任务上，pytorch 的 2.6b_fp16 模型的 few-shot 精度为0.78929，相对于论文的的0.81 下降了 2 个点。
 # 推理
 
 目前只有生成文本的推理脚本，如下：

@@ -19,8 +19,10 @@ import os
 import sys
 import numpy as np
 import torch
+import time
 from megatron.text_generation_utils import pad_batch, get_batch
 from load_iflytek import iflytek_dataset
+import itertools
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              os.path.pardir)))
@@ -52,74 +54,7 @@ def add_text_generate_args(parser):
     """Text generation arguments."""
     group = parser.add_argument_group(title='text generation')
 
-    group.add_argument("--temperature", type=float, default=1.0,
-                       help='Sampling temperature.')
-    group.add_argument("--greedy", action='store_true', default=False,
-                       help='Use greedy sampling.')
-    group.add_argument("--top_p", type=float, default=0.0,
-                       help='Top p sampling.')
-    group.add_argument("--top_k", type=int, default=5,
-                       help='Top k sampling.')
-    group.add_argument("--out-seq-length", type=int, default=1024,
-                       help='Size of the output generated text.')
-    group.add_argument("--sample-input-file", type=str, default=None,
-                       help='Get input from file instead of interactive mode, '
-                            'each line is an input.')
-    group.add_argument("--sample-output-file", type=str, default=None,
-                       help='Output file got from --sample-input-file')
-    group.add_argument("--num-samples", type=int, default=0,
-                       help='Number of samples to generate unconditionally, '
-                            'defaults to 0 and interactive conditional sampling')
-    group.add_argument("--genfile", type=str,
-                       help='Output file when generating unconditionally')
-    group.add_argument("--recompute", action='store_true',
-                       help='During generation recompute all attention '
-                            'instead of using previously computed keys/values.')
-
     return parser
-
-
-def generate(model, context_tokens, args, tokenizer, max_num=50):
-
-    valid_length = len(context_tokens)
-    context_tokens_, context_lengths = pad_batch([context_tokens],
-                                                 tokenizer.pad_id, args)
-    context_tokens_tensor = torch.cuda.LongTensor(context_tokens_)
-    tokens, attention_mask, position_ids = get_batch(context_tokens_tensor)
-    type_ids = None
-    bs,_  = tokens.shape
-    cnt = 0
-    while valid_length < args.seq_length:
-        with torch.no_grad():
-            logits = model(tokens,
-                           position_ids,
-                           attention_mask,
-                           tokentype_ids=type_ids,
-                           forward_method_parallel_output=False)
-        logits = logits[:,:,:tokenizer.vocab_size].cpu().numpy()
-        logits = logits.reshape(bs, args.seq_length, -1)
-        probs = logits[0, valid_length-1, :]
-        p_args = probs.argsort()[::-1][:args.top_k]
-
-        p = probs[p_args]
-        p = p / sum(p)
-        for i in range(1000):
-            target_index = np.random.choice(len(p), p=p)
-            if p_args[target_index] != tokenizer.unk:
-                break
-
-        if p_args[target_index] == tokenizer.eod or \
-                valid_length == args.seq_length-1 or cnt>=max_num:
-            outputs = tokens.cpu().numpy()
-            break
-        tokens[0][valid_length] = p_args[target_index]
-        valid_length += 1
-        cnt += 1
-
-    length = np.sum(outputs != tokenizer.pad_id)
-    outputs = outputs[0][:length]
-    return outputs
-
 
 def main():
     """Main program."""
@@ -135,11 +70,27 @@ def main():
     if args.load is not None:
         _ = load_checkpoint(model, None, None)
 
-    task = 'zero_shot'
+    task = 'few_shot'
+    config = [
+        ('task', [task]), #'zero_shot','one_shot','few_shot'
+        ('max_len', [50]), #None,200,100
+        ('tag_new_example', [True]), #True, False
+        ('few_shot_num_sample', [3]), #2,3,4
+        ('np_seed', [233]), #233,235,237,239
+        ('new_mask', [False]), #True, False
+        ('input_str_format', [
+            # "{label}：{sentence}",
+            "这是关于{label}的应用程序：{sentence}",
+        ])
+    ]
+    para_config_list = [{y0[0]:y1 for y0,y1 in zip(config,x)} for x in itertools.product(*[x[1] for x in config])]
+    para_config = para_config_list[0]
+
     dataset = iflytek_dataset()
-    samples = dataset.getSamples()
+    samples = dataset.getSamples(para_config)
 
     acc = []
+    time_recorder = time.time()
     for ind,sample in enumerate(samples):
         loss_ = []
         for class_sample,loss_mask in zip(sample['input_ids_list'],sample['loss_mask_list']):
@@ -164,9 +115,11 @@ def main():
         predict = np.argmin(loss_)
         acc.append(predict==sample['label'])
         if (ind%100 == 0):
-            print(f'[{ind}] iflytek-{task}: acc={sum(acc)}/{len(acc)}={sum(acc)/len(acc)}')
+            time_cost = time.time() - time_recorder
+            print(f'[{ind}] iflytek-{task}: acc={sum(acc)}/{len(acc)}={(sum(acc)/len(acc)):.5f} time={time_cost:.2f}')
 
     accuracy = sum(acc)/len(acc)
+    print(f'{para_config} iflytek-{task}: acc={sum(acc)}/{len(acc)}={(sum(acc)/len(acc)):.5f} time={time_cost:.2f}')
     pass
 
 
