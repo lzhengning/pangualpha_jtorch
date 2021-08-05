@@ -19,11 +19,12 @@ import os
 import sys
 import numpy as np
 import torch
-from megatron.text_generation_utils import pad_batch, get_batch
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              os.path.pardir)))
 
+
+from megatron.text_generation_utils import pad_batch, get_batch
 from megatron import get_args
 from megatron import print_rank_0
 from megatron import get_tokenizer

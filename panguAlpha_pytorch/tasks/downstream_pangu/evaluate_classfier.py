@@ -73,7 +73,7 @@ def main():
     task = 'few_shot'
     config = [
         ('task', [task]), #'zero_shot','one_shot','few_shot'
-        ('max_len', [50]), #None,200,100
+        ('max_len', [100]), #None,200,100
         ('tag_new_example', [True]), #True, False
         ('few_shot_num_sample', [3]), #2,3,4
         ('np_seed', [233]), #233,235,237,239
