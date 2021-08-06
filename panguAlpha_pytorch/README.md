@@ -174,7 +174,7 @@ python tool/merge_mp_partitions.py \
 
 参考脚本
 
-```
+```bash
 examples/pretrain_gpt2_distributed_2.6B.sh
 ```
 
@@ -184,7 +184,7 @@ examples/pretrain_gpt2_distributed_2.6B.sh
 
 ##### 生成训练数据
 
-参考脚本：`/tools/preprocess_data.py`
+参考脚本：`/tools/preprocess_data_pangu.py`
 原始txt文本格式为（需要空行分割不同样本）：
 ```txt
 sample 1 ***
@@ -200,7 +200,7 @@ sample 2 ***
 ***
 ```
 ```bash
-python /tools/preprocess_data.py \
+python /tools/preprocess_data_pangu.py \
 --input /dataset/tmp.txt \
 --output-prefix /megatron/dataset/ \
 --vocab-file /megatron/tokenizer/bpe_4w_pcl/vocab \
