@@ -94,7 +94,7 @@ We support three file formats for training, but all require preprocessing. First
 {"src": "The Internet", "text": "jumps over the lazy dog", "type": "Eng", "id": "42", "title": "Second Part"}
 </pre>
 
-The name of the `text` field of the json can be changed by using the `--json-key` flag in [`preprocess_data.py`](./tools/preprocess_data.py) The other metadata are optional and are not used in training.
+The name of the `text` field of the json can be changed by using the `--json-key` flag in [`preprocess_data.py`](tools/preprocess_data_pangu.py) The other metadata are optional and are not used in training.
 
 The loose json is then processed into a binary format for training. To convert the json into mmap, cached index file, or the lazy loader format use `preprocess_data.py`. Set the `--dataset-impl` flag to `mmap`, `cached`, or `lazy`, respectively (default is `mmap`). An example script to prepare data for BERT training is:
 <pre>
@@ -123,7 +123,7 @@ python tools/preprocess_data.py \
 
 Here the output files are named `my-gpt2_text_document.bin` and `my-gpt2_text_document.idx`. As before, in GPT-2 training, use the longer name without the extension as `--data-path`.
 
-Further command line arguments are described in the source file [`preprocess_data.py`](./tools/preprocess_data.py).
+Further command line arguments are described in the source file [`preprocess_data.py`](tools/preprocess_data_pangu.py).
 
 <a id="bert-pretraining"></a>
 ## BERT Pretraining

@@ -12,7 +12,7 @@ Megatron 是英伟达深度学习应用研究团队开发的一款大型、强�
 
 也可直接下载配好的镜像：
 
-```
+```bash
 docker pull yands/pangu-alpha-megatron-lm-nvidia-pytorch:20.03.2
 ```
 使用`/opt/conda/bin/python`。
@@ -40,7 +40,7 @@ docker pull yands/pangu-alpha-megatron-lm-nvidia-pytorch:20.03.2
 
 `--top_k`：k 值越大生成样本多样性越高。可以尝试不同的 k。
 
-```
+```bash
 python tool/generate_samples_Pangu.py \
 --model-parallel-size 1 \
 --num-layers 31 \
@@ -115,7 +115,7 @@ Output is: 分别在哪个省的哪个市
 
 `--mp-model-save`：切分后，模型的保存路径
 
-```
+```bash
 python tools/split_full_model_into_mp_model.py \
 --model-parallel-size 1 \
 --num-mp-model 2 \
@@ -150,7 +150,7 @@ finetune 完后的模型是分片的，如果要进行单卡推理，则先需�
 
 `--load`：模型保存目录
 
-```
+```bash
 python tool/merge_mp_partitions.py \
 --model-parallel-size 1 \
 --mp-model-parallel-size 2 \
@@ -184,9 +184,29 @@ examples/pretrain_gpt2_distributed_2.6B.sh
 
 ##### 生成训练数据
 
-参考脚本：
+参考脚本：`/tools/preprocess_data.py`
+原始txt文本格式为（需要空行分割不同样本）：
+```txt
+sample 1 ***
+***
+***
 
-`preprocess_data.py`
+sample 2 ***
+***
+***
+
+sample 2 ***
+***
+***
+```
+```bash
+python /tools/preprocess_data.py \
+--input /dataset/tmp.txt \
+--output-prefix /megatron/dataset/ \
+--vocab-file /megatron/tokenizer/bpe_4w_pcl/vocab \
+--dataset-impl mmap \
+--append-eod
+```
 
 
 
