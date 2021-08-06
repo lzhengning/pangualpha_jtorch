@@ -201,7 +201,7 @@ sample 2 ***
 ```
 ```bash
 python /tools/preprocess_data_pangu.py \
---input /dataset/tmp.txt \
+--input /dataset/*.txt \
 --output-prefix /megatron/dataset/ \
 --vocab-file /megatron/tokenizer/bpe_4w_pcl/vocab \
 --dataset-impl mmap \
