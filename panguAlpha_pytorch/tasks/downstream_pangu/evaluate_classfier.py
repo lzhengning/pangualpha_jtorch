@@ -20,13 +20,12 @@ import sys
 import numpy as np
 import torch
 import time
-from megatron.text_generation_utils import pad_batch, get_batch
-from load_iflytek import iflytek_dataset
 import itertools
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              os.path.pardir)))
 
+from megatron.text_generation_utils import pad_batch, get_batch
 from megatron import get_args
 from megatron import print_rank_0
 from megatron import get_tokenizer
@@ -41,6 +40,8 @@ from megatron.text_generation_utils import generate_samples_interactive
 # from megatron.model.transformer import LayerNorm
 from megatron import mpu
 
+
+from load_iflytek import iflytek_dataset
 def model_provider():
     """Build the model."""
 
@@ -73,7 +74,7 @@ def main():
     task = 'few_shot'
     config = [
         ('task', [task]), #'zero_shot','one_shot','few_shot'
-        ('max_len', [100]), #None,200,100
+        ('max_len', [50]), #None,200,100
         ('tag_new_example', [True]), #True, False
         ('few_shot_num_sample', [3]), #2,3,4
         ('np_seed', [233]), #233,235,237,239
