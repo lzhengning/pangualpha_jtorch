@@ -29,7 +29,7 @@ docker pull yands/pangu-alpha-megatron-lm-nvidia-pytorch:20.03.2
 ```txt
 Pangu-alpha_2.6B_fp16_mgt                       #模型目录，--load 参数需要填写的路径
     -- iter_0001000                             #迭代次数目录
-        --mp_rank_00                            #各个 GPU 的目录
+        --mp_rank_00                            #模型并行时各个 GPU 的目录
             --model_optim_rng.pt                #模型文件
     --latest_checkpointed_iteration.txt         #记录 ckpt 的迭代次数文件
 ```
