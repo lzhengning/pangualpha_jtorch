@@ -15,6 +15,7 @@ DATA_PATH=/userhome/dataset/megatron/zhanghan/sample_100G_policy_3/Sample100GPol
 #DATA_PATH=/userhome/dataset/megatron/test_vocab4w/text_document
 #CHECKPOINT_PATH=/ghome/yands/model/checkPoints/megatron-1.1-pangu
 CHECKPOINT_PATH=/userhome/model/checkPoints/megatron-1.1-pangu-2.6B/merged_split
+#CHECKPOINT_PATH=/userhome/model/panguAlpha_2.6b_fp16_NumpyCkpt/merged/
 
 DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE --nnodes $NNODES --node_rank $NODE_RANK --master_addr $MASTER_ADDR --master_port $MASTER_PORT"
 

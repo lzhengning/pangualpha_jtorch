@@ -25,7 +25,14 @@ docker pull yands/pangu-alpha-megatron-lm-nvidia-pytorch:20.03.2
 | [Pangu-alpha_13B_fp16_mgt.zip](https://git.openi.org.cn/attachments/937b3e2d-98fb-4871-9691-b32afb5a4d79?type=0) | e6f7a05cbdf8ba8d69e6786e48344f6f | 22G | num-layers : 39<br />hidden-size : 5120<br />num-attention-heads : 40 |
 
 注：`num-layers` 等于 Pangu 项目中的 `num-layers - 1`
-
+模型文件目录结构：
+```txt
+Pangu-alpha_2.6B_fp16_mgt                       #模型目录，--load 参数需要填写的路径
+    -- iter_0001000                             #迭代次数目录
+        --mp_rank_00                            #各个 GPU 的目录
+            --model_optim_rng.pt                #模型文件
+    --latest_checkpointed_iteration.txt         #记录 ckpt 的迭代次数文件
+```
 # 精度
 模型转换需要先把 mindspore 的 ckpt 转为 numpy 的 npy 文件，然后再把 npy 文件加载到 pytorch 模型。该过程存在精度损失，所以 pytorch 模型的结果和 Pangu-Alpha 的 mindspore 版本的推理结果有一定的差异。暂时还没解决，正在寻找解决方案。
 

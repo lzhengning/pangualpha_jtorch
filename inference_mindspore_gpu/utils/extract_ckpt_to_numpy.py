@@ -29,7 +29,7 @@ if __name__ == '__main__':
         parameter_name = parameter.name
         parameter_shape = parameter.data.shape
         parameter_shape_length = len(parameter_shape)
-        np.save(save + parameter_name +'.npy', parameter.data.asnumpy())
+        # np.save(save + parameter_name +'.npy', parameter.data.asnumpy())
         print(type(param_dict1[key]))
         print(param_dict1[key])
 

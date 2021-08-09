@@ -50,7 +50,7 @@ class LayerNorm(nn.Cell):
         self.sqrt = P.Sqrt().shard(((dp, 1, 1),))
         self.sub1 = P.Sub().shard(((dp, 1, 1), (dp, 1, 1)))
         self.sub2 = P.Sub().shard(((dp, 1, 1), (dp, 1, 1)))
-        self.add = P.TensorAdd().shard(((dp, 1, 1), ()))
+        self.add = P.Add().shard(((dp, 1, 1), ()))
         self.eps = eps
         self.mul = P.Mul().shard(((dp, 1, 1), (1,)))
         self.add2 = P.TensorAdd().shard(((dp, 1, 1), (1,)))
@@ -619,7 +619,8 @@ class PANGUALPHA_Model(nn.Cell):
         
         for i in range(num_layers):
             per_block = Block(config, i + 1).set_comm_fusion(int(i / fusion_group_size) + 2)
-            per_block.recompute()
+            if config.use_recompute:
+                per_block.recompute()
             # per_block.attention.dropout.dropout_gen_mask.recompute(False)
             # per_block.attention.prob_dropout.dropout_gen_mask.recompute(False)
             # per_block.output.dropout.dropout_gen_mask.recompute(False)

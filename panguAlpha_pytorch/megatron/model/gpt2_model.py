@@ -54,23 +54,28 @@ class GPT2Model(MegatronModule):
     def forward(self, input_ids, position_ids, attention_mask, labels=None,
                 tokentype_ids=None, layer_past=None, get_key_value=False,
                 forward_method_parallel_output=None):
-        ##############################   debug mp  ##################################
+
+        #<<<<<<<<<<<<<<<<<<<<<<<<<<<   debug mp <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         # import numpy as np
         # from megatron import print_rank_0
         # from megatron import get_tokenizer
+        # from megatron.text_generation_utils import pad_batch, get_batch
         # print_rank_0(input_ids.shape)
+        # tokenizer = get_tokenizer()
         # input_ids = [39,2401,17,4448,615,5188,2783,2762,10,2371,5720,11050,3373,24420,1613]
+        # input_len = len(input_ids)
         # input_ids.extend([6] * (1024 - len(input_ids)))
         # input_ids = torch.Tensor(np.atleast_2d(input_ids)).long().cuda()
-        # print_rank_0('='*100)
-        # print_rank_0('='*100)
+        # context_tokens_tensor = torch.cuda.LongTensor(input_ids)
+        # tokens, attention_mask, position_ids = get_batch(context_tokens_tensor)
+        # print_rank_0('='*150)
+        # print_rank_0('='*150)
         # print_rank_0('input id is: ')
-        # tokenizer = get_tokenizer()
         # for ids in input_ids.cpu().numpy().tolist():
         #     print_rank_0(ids)
         #     # print_rank_0(tokenizer.convert_ids_to_tokens(ids))
         # print_rank_0('*'*50)
-        ################################################################
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
         # Language model.
         lm_output = self.language_model(input_ids,
@@ -79,15 +84,20 @@ class GPT2Model(MegatronModule):
                                         tokentype_ids=tokentype_ids,
                                         layer_past=layer_past,
                                         get_key_value=get_key_value)
-        #########################  debug mp  #######################################
+
+        #<<<<<<<<<<<<<<<<<<<<<<<<<<<   debug mp <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         # with torch.no_grad():
         #     logits = lm_output.cpu().numpy()
         # index = np.argmax(logits, axis=2)
         # ids_ = index.tolist()
         # for ids in ids_:
-        #     print_rank_0(ids)
-            # print_rank_0(tokenizer.convert_ids_to_tokens(ids))
-        ################################################################
+        #     print(f"rank is {torch.distributed.get_rank()}")
+        #     print(f"next id of input is {ids[input_len]}")
+        #     print(f'out put id is: {ids}')
+        #     # print_rank_0(tokenizer.convert_ids_to_tokens(ids))
+        # raise ValueError("stop")
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
         if get_key_value:
             lm_output, presents = lm_output
 

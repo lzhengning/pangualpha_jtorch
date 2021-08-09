@@ -632,6 +632,7 @@ class ParallelTransformerLayer(MegatronModule):
 
         # Layer norm at the begining of the transformer layer.
         layernorm_output = self.input_layernorm(hidden_states)
+
         # Self attention.
         attention_output, attention_bias = \
             self.attention(layernorm_output,
@@ -671,9 +672,9 @@ class ParallelTransformerLayer(MegatronModule):
         # Layer norm post the self attention.
         layernorm_output = self.post_attention_layernorm(layernorm_input)
 
-        # MLP.
         mlp_output, mlp_bias = self.mlp(layernorm_output)
-        
+
+        # MLP.
         # Second residual connection.
         if self.apply_residual_connection_post_layernorm:
             residual = layernorm_output

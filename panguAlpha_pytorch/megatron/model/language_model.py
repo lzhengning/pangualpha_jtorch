@@ -163,9 +163,11 @@ class Embedding(MegatronModule):
         self.init_method(self.tokentype_embeddings.weight)
 
     def forward(self, input_ids, position_ids, tokentype_ids=None):
+
         # Embeddings.
         words_embeddings = self.word_embeddings(input_ids)
         position_embeddings = self.position_embeddings(position_ids)
+
         embeddings = words_embeddings + position_embeddings
         if tokentype_ids is not None:
             assert self.tokentype_embeddings is not None
@@ -444,6 +446,7 @@ class TransformerLanguageModel(MegatronModule):
         # Query Embeddings.
         queryEmbedding_out = self.topQueryEmbedding(position_ids,
                                                     tokentype_ids=tokentype_ids)
+
 
         # Transformer.
         transformer_output = self.transformer(embedding_output,

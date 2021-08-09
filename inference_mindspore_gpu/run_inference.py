@@ -40,8 +40,8 @@ def get_model_13b_fp16(args):
         word_emb_dp=True,
         eod_reset=False)
     print("===config is: ", config, flush=True)
-    pangu = PANGUALPHA_fp16(config)
-    pangu_ = VirtualDatasetOneInputCell(pangu)
+    pangu_ = PANGUALPHA_fp16(config)
+    # pangu_ = VirtualDatasetOneInputCell(pangu_)
     eval_pangu = EvalNet_p(pangu_, generate=True)
     eval_pangu.set_train(False)
     model = Model(eval_pangu)
@@ -78,11 +78,12 @@ def get_model_2b6_fp16(args):
         self_layernorm=True,
         forward_reduce_scatter=True,
         word_emb_dp=True,
-        eod_reset=eod_reset)
+        eod_reset=eod_reset,
+        use_recompute=False)
     print("===config is: ", config, flush=True)
 
-    pangu = PANGUALPHA_fp16(config)
-    pangu_ = VirtualDatasetOneInputCell(pangu)
+    pangu_ = PANGUALPHA_fp16(config)
+    # pangu_ = VirtualDatasetOneInputCell(pangu_)
     eval_pangu = EvalNet_p(pangu_, generate=True)
     eval_pangu.set_train(False)
     model = Model(eval_pangu)
@@ -122,8 +123,8 @@ def get_model_2b6(args):
         eod_reset=eod_reset)
     print("===config is: ", config, flush=True)
 
-    pangu = PANGUALPHA_fp32(config)
-    pangu_ = VirtualDatasetOneInputCell(pangu)
+    pangu_ = PANGUALPHA_fp32(config)
+    # pangu_ = VirtualDatasetOneInputCell(pangu_)
     eval_pangu = EvalNet_p(pangu_, generate=True)
     eval_pangu.set_train(False)
     model = Model(eval_pangu)
@@ -136,7 +137,7 @@ def get_model_2b6(args):
 
 def run_eval(args):
 
-    ms.context.set_context(save_graphs=False, mode=ms.context.GRAPH_MODE, device_target="GPU")
+    ms.context.set_context(save_graphs=False, mode=ms.context.PYNATIVE_MODE, device_target="GPU") #GRAPH_MODE PYNATIVE_MODE
 
     if args.model == '13B_fp16':
         model_predict = get_model_13b_fp16(args)
@@ -178,7 +179,7 @@ def run_eval(args):
         tokenized_token = tokenizer.tokenize(sample)
         start_sentence = tokenizer.convert_tokens_to_ids(tokenized_token)
         input_ids = np.array(start_sentence).reshape(1, -1)
-        output_ids = generate(model_predict, input_ids, 1024, 9)
+        output_ids = generate(model_predict, input_ids, 1024, 9, TOPK=1)
         output_samples = tokenizer.convert_ids_to_tokens(output_ids.tolist())
         print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
         print('Input is:', sample)
