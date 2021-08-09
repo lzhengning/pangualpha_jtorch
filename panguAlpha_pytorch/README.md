@@ -35,7 +35,7 @@ Pangu-alpha_2.6B_fp16_mgt                       #模型目录，--load 参数需
     --latest_checkpointed_iteration.txt         #记录 ckpt 的迭代次数文件
 ```
 # 精度
-模型转换需要先把 mindspore 的 ckpt 转为 numpy 的 npy 文件，然后再把 npy 文件加载到 pytorch 模型。该过程存在精度损失，所以 pytorch 模型的结果和 Pangu-Alpha 的 mindspore 版本的推理结果有一定的差异。暂时还没解决，正在寻找解决方案。
+两个框架的`mean`算子的结果有一定的差异，导致 `LayerNorm` 层的输出不一致，所以生成结果不完全一致。暂时还没解决，正在寻找解决方案 :-) 。
 
 在 iflytek 任务上，pytorch 的 2.6b_fp16 模型的 few-shot 精度为0.78929，相对于论文的的0.81 下降了 2 个点。
 # 推理
