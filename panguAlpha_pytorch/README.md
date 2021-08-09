@@ -193,7 +193,10 @@ examples/pretrain_gpt2_distributed_2.6B.sh
 ##### 生成训练数据
 
 参考脚本：`/tools/preprocess_data_pangu.py`
-原始txt文本格式为（需要空行分割不同样本）：
+
+在 train_dataset 目录下存放多个 `xxx.txt` 文件，如果训练数据较多，最好每个 `txt` 文件大小统一，且分开多个 `txt` 存放，大小可以 10M 一个文件。如果有繁体文字，需要转成简体，可以使用`zhconv`。
+
+每个 `txt` 文本格式为（需要空行分割不同样本）：
 ```txt
 sample 1 ***
 ***
@@ -209,7 +212,7 @@ sample 2 ***
 ```
 ```bash
 python /tools/preprocess_data_pangu.py \
---input /dataset/*.txt \
+--input /train_dataset/*.txt \
 --output-prefix /megatron/dataset/ \
 --vocab-file /megatron/tokenizer/bpe_4w_pcl/vocab \
 --dataset-impl mmap \
