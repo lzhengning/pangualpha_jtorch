@@ -40,6 +40,8 @@ Pangu-alpha_2.6B_fp16_mgt                       #模型目录，--load 参数需
 在 iflytek 任务上，pytorch 的 2.6b_fp16 模型的 few-shot 精度为0.78929，相对于论文的的0.81 下降了 2 个点。
 # 推理
 
+###**想快速体验？？请查看[3分钟实现推理教程](3分钟实现推理教程.md)！！可以白嫖 T4 服务器哦！！！**
+
 目前只有生成文本的推理脚本，如下：
 
 需要配置参数：
@@ -49,11 +51,11 @@ Pangu-alpha_2.6B_fp16_mgt                       #模型目录，--load 参数需
 `--top_k`：k 值越大生成样本多样性越高。可以尝试不同的 k。
 
 ```bash
-python tool/generate_samples_Pangu.py \
+python tools/generate_samples_Pangu.py \
 --model-parallel-size 1 \
 --num-layers 31 \
 --hidden-size 2560 \
---load /**ckpt path**/ \
+--load /dataset/Pangu-alpha_2.6B_mgt/ \
 --num-attention-heads 32 \
 --max-position-embeddings 1024 \
 --tokenizer-type GPT2BPETokenizer \
@@ -64,7 +66,7 @@ python tool/generate_samples_Pangu.py \
 --temperature 1.0 \
 --vocab-file megatron/tokenizer/bpe_4w_pcl/vocab \
 --num-samples 0 \
---top_k 10 \
+--top_k 2 \
 --finetune
 ```
 例子：
