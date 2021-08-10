@@ -15,17 +15,17 @@
 
 - 点击项目中的`云脑`
 
-![img.png](images/云脑选择.png)
+![img.png](images/choice-yunnao.png)
 
 - 点击`新建任务`
 
 - 在`镜像`那一栏里面搜索下图的镜像
 
-![img.png](images/选择镜像.png)
+![img.png](images/chice-images.png)
 
 - 在`数据集存放路径`那一栏选 'PanguAlpha_2.6B_fp16_mindspore.zip'
 
-![img.png](images/数据集选择.png)
+![img.png](images/choice-dataset.png)
 
 - 点击`新建任务`
 
