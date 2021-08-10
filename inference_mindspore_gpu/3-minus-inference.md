@@ -48,4 +48,4 @@
 python run_inference.py --model=2B6_fp16 --load_ckpt_path=/dataset/PanguAlpha_2.6B_fp16.ckpt
 ```
 
-恭喜你，完成了推理流程 :-)
+恭喜你，完成了推理流程

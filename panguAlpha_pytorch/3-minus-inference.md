@@ -65,4 +65,4 @@ python tools/generate_samples_Pangu.py \
 
 ```
 
-恭喜你，完成了推理流程 :-)
+恭喜你，完成了推理流程
