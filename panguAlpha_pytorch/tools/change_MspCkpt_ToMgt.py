@@ -352,7 +352,7 @@ def main():
     # initialize_megatron(args_defaults={'tokenizer_type': 'GPT2BPETokenizer'})
 
     merged_model = get_model(model_type)
-    iteration = 76000   #any num is ok
+    iteration = 1000   #any num is ok
 
     # Save the model.
     args.model_parallel_size = 1
