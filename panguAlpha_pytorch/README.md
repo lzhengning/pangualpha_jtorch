@@ -175,6 +175,7 @@ python tool/merge_mp_partitions.py \
 --seq-length 1024 \
 --model-type Pangu \
 --vocab-file megatron/tokenizer/bpe_4w_pcl/vocab \
+--reset-attention-mask \
 --finetune \
 ```
 

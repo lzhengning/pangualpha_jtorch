@@ -52,6 +52,7 @@ DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE --nnodes $NNODES --node_rank $
        --attention-dropout 0.1 \
        --hidden-dropout 0.1 \
        --fp16 \
+       --reset-attention-mask \
        --finetune
 
 
