@@ -20,10 +20,10 @@ class LayerNormScale(nn.Cell):
         self.sqrt = P.Sqrt().shard(((dp, 1, 1),))
         self.sub1 = P.Sub().shard(((dp, 1, 1), (dp, 1, 1)))
         self.sub2 = P.Sub().shard(((dp, 1, 1), (dp, 1, 1)))
-        self.add = P.TensorAdd().shard(((dp, 1, 1), ()))
+        self.add = P.Add().shard(((dp, 1, 1), ()))
         self.eps = eps
         self.mul = P.Mul().shard(((dp, 1, 1), (1,)))
-        self.add2 = P.TensorAdd().shard(((dp, 1, 1), (1,)))
+        self.add2 = P.Add().shard(((dp, 1, 1), (1,)))
         self.real_div = P.RealDiv().shard(((dp, 1, 1), (dp, 1, 1)))
         self.scale_div = P.RealDiv().shard(((dp, 1, 1), ()))
         self.scale_mul = P.Mul().shard(((dp, 1, 1), ()))
@@ -53,7 +53,7 @@ class LayerNorm(nn.Cell):
         self.add = P.Add().shard(((dp, 1, 1), ()))
         self.eps = eps
         self.mul = P.Mul().shard(((dp, 1, 1), (1,)))
-        self.add2 = P.TensorAdd().shard(((dp, 1, 1), (1,)))
+        self.add2 = P.Add().shard(((dp, 1, 1), (1,)))
         self.real_div = P.RealDiv().shard(((dp, 1, 1), (dp, 1, 1)))
         self.scale_div = P.RealDiv().shard(((dp, 1, 1), ()))
         self.scale_mul = P.Mul().shard(((dp, 1, 1), ()))
@@ -96,7 +96,7 @@ class Mapping(nn.Cell):
                               parallel_optimizer=False)
         self.dtype = config.compute_dtype
         self.cast = P.Cast()
-        self.add = P.TensorAdd().shard(((config.dp, 1), (1,)))
+        self.add = P.Add().shard(((config.dp, 1), (1,)))
         self.matmul = P.MatMul().shard(
             ((config.dp, config.mp), (config.mp, 1)))
 
@@ -124,7 +124,7 @@ class Mapping_output(nn.Cell):
                               name="mapping_bias")
         self.dtype = config.compute_dtype
         self.cast = P.Cast()
-        self.add = P.TensorAdd().shard(((config.dp, config.mp), (config.mp,)))
+        self.add = P.Add().shard(((config.dp, config.mp), (config.mp,)))
         self.matmul = P.MatMul().shard(((config.dp, 1), (1, config.mp)))
 
     def construct(self, x):
@@ -276,7 +276,7 @@ class Attention(nn.Cell):
             ((1,), (config.dp, 1, 1, 1))).add_prim_attr("_side_effect", True)
         self.mul = P.Mul().shard(
             ((config.dp, 1, 1, 1), (1,))).add_prim_attr("_side_effect", True)
-        self.add = P.TensorAdd().shard(
+        self.add = P.Add().shard(
             ((config.dp, 1, 1, 1), (config.dp, config.mp, 1, 1)))
         if self.scale:
             self.scale_factor = Tensor(math.sqrt(self.size_per_head), dtype=mstype.float16)
@@ -350,7 +350,7 @@ class Attention(nn.Cell):
             past_key = self.transpose(layer_past[0], (0, 1, 3, 2))
             key = self.concat_k((past_key, key))
             value = self.concat_v(past_value, value)
-        layer_present = P.Pack()([self.transpose(key, (0, 1, 3, 2)), value])
+        layer_present = P.Stack()([self.transpose(key, (0, 1, 3, 2)), value])
         attention = self._attn(query, key, value, attention_mask)
         attention_merge = self.merge_heads(attention)
         output = self.projection(attention_merge)
@@ -467,8 +467,8 @@ class Block(nn.Cell):
         self.layernorm2.beta.parallel_optimizer = False
         self.output = Output(config, scale)
         self.post_layernorm_residual = config.post_layernorm_residual
-        self.add = P.TensorAdd().shard(((config.dp, 1, 1), (config.dp, 1, 1)))
-        self.last_add = P.TensorAdd().shard(
+        self.add = P.Add().shard(((config.dp, 1, 1), (config.dp, 1, 1)))
+        self.last_add = P.Add().shard(
             ((config.dp, 1, 1), (config.dp, 1,
                                  1))).add_prim_attr("recompute", False)
         self.dtype = config.compute_dtype
@@ -520,7 +520,7 @@ class QueryLayerAttention(Attention):
             past_key = self.transpose(layer_past[0], (0, 1, 3, 2))
             key = self.concat_k((past_key, key))
             value = self.concat_v(past_value, value)
-        layer_present = P.Pack()([self.transpose(key, (0, 1, 3, 2)), value])
+        layer_present = P.Stack()([self.transpose(key, (0, 1, 3, 2)), value])
         attention = self._attn(query, key, value, attention_mask)
         attention_merge = self.merge_heads(attention)
         output = self.projection(attention_merge)
@@ -540,9 +540,9 @@ class QueryLayer(nn.Cell):
         self.layernorm2.beta.parallel_optimizer = False
         self.output = Output(config, scale)
         self.post_layernorm_residual = config.post_layernorm_residual
-        self.add = P.TensorAdd().shard(((config.dp, 1, 1), (config.dp, 1, 1)))
+        self.add = P.Add().shard(((config.dp, 1, 1), (config.dp, 1, 1)))
 
-        self.last_add = P.TensorAdd().shard(
+        self.last_add = P.Add().shard(
             ((config.dp, 1, 1), (config.dp, 1,
                                  1))).add_prim_attr("recompute", False)
         self.dtype = config.compute_dtype
@@ -642,7 +642,7 @@ class PANGUALPHA_Model(nn.Cell):
         self.layernorm.beta.parallel_optimizer = False
         self.use_past = config.use_past
         self.past = tuple([None] * config.num_layers)
-        self.add = P.TensorAdd().shard(((config.dp, 1, 1), (config.dp, 1, 1)))
+        self.add = P.Add().shard(((config.dp, 1, 1), (config.dp, 1, 1)))
         self.expand_dims = P.ExpandDims().shard(((config.dp, 1, 1),))
         self.dtype = config.compute_dtype
         # self.dropout = nn.Dropout(1 - config.dropout_rate)
@@ -787,14 +787,14 @@ class CrossEntropyLoss(nn.Cell):
         self.exp = P.Exp().shard(((config.dp, config.mp),))
         self.div = P.RealDiv().shard(((config.dp, config.mp), (config.dp, 1)))
         self.log = P.Log().shard(((config.dp, config.mp),))
-        self.add = P.TensorAdd().shard(((config.dp, config.mp), ()))
+        self.add = P.Add().shard(((config.dp, config.mp), ()))
         self.mul = P.Mul().shard(
             ((config.dp, config.mp), (config.dp, config.mp)))
         self.neg = P.Neg().shard(((config.dp, config.mp),))
         self.sum2 = P.ReduceSum().shard(((1,),))
 
         self.mul2 = P.Mul().shard(((1,), (1,)))
-        self.add2 = P.TensorAdd()
+        self.add2 = P.Add()
         self.div2 = P.RealDiv()
 
     def construct(self, logits, label, input_mask):
