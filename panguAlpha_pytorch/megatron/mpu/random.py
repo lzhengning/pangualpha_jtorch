@@ -54,7 +54,7 @@ def init_checkpointed_activations_memory_buffer():
     dtype = torch.half
     if not args.fp16:
         dtype = torch.float
-        
+
     global _CHECKPOINTED_ACTIVATIONS_MEMORY_BUFFER
     assert _CHECKPOINTED_ACTIVATIONS_MEMORY_BUFFER is None, \
         'checkpointed activations memory buffer is already allocated.'

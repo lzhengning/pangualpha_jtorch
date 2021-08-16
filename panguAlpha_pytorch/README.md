@@ -222,6 +222,10 @@ python /tools/preprocess_data_pangu.py \
 --append-eod
 ```
 
+将会生成/path/to/dataset/xxx.idx 和 /path/to/dataset/xxx.bin 文件。
+
+Finetune 和预训练时需要填写参数：`--data-path=/path/to/dataset/xxx`
+
 
 
 
