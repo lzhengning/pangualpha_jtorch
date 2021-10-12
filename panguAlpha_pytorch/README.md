@@ -186,7 +186,7 @@ python tool/merge_mp_partitions.py \
 参考脚本
 
 ```bash
-examples/pretrain_gpt2_distributed_2.6B.sh
+examples/pretrain_pangu_distributed_2.6B.sh
 ```
 
 

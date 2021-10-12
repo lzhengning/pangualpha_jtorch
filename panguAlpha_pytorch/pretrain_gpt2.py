@@ -76,8 +76,7 @@ def forward_step(data_iterator, model):
 
     # Get the batch.
     timers('batch generator').start()
-    tokens, labels, loss_mask, attention_mask, position_ids = get_batch(
-        data_iterator)
+    tokens, labels, loss_mask, attention_mask, position_ids = get_batch(data_iterator)
     timers('batch generator').stop()
     # Forward model.
     losses = model(tokens, position_ids, attention_mask, labels=labels)
@@ -94,8 +93,7 @@ def train_valid_test_datasets_provider(train_val_test_num_samples):
     """Build train, valid, and test datasets."""
     args = get_args()
 
-    print_rank_0('> building train, validation, and test datasets '
-                 'for GPT2 ...')
+    print_rank_0('> building train, validation, and test datasets for GPT2 ...')
     train_ds, valid_ds, test_ds = build_train_valid_test_datasets(
         data_prefix=args.data_path,
         data_impl=args.data_impl,

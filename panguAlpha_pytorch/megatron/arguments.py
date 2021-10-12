@@ -165,7 +165,7 @@ def _add_network_size_args(parser):
     group.add_argument('--max-position-embeddings', type=int, default=None,
                        help='Maximum number of position embeddings to use. '
                        'This is the size of position embedding.')
-    group.add_argument('--make-vocab-size-divisible-by', type=int, default=128,
+    group.add_argument('--make-vocab-size-divisible-by', type=int, default=1,
                        help='Pad the vocab size to be divisible by this value.'
                        'This is added for computational efficieny reasons.')
     group.add_argument('--layernorm-epsilon', type=float, default=1e-5,

@@ -122,6 +122,7 @@ class Embedding(MegatronModule):
         self.word_embeddings = mpu.VocabParallelEmbedding(
             vocab_size, self.hidden_size, init_method=self.init_method)
         self._word_embeddings_key = 'word_embeddings'
+        self.vocab_size = vocab_size
 
         # Position embedding (serial).
         self.position_embeddings = torch.nn.Embedding(
@@ -163,11 +164,9 @@ class Embedding(MegatronModule):
         self.init_method(self.tokentype_embeddings.weight)
 
     def forward(self, input_ids, position_ids, tokentype_ids=None):
-
         # Embeddings.
         words_embeddings = self.word_embeddings(input_ids)
         position_embeddings = self.position_embeddings(position_ids)
-
         embeddings = words_embeddings + position_embeddings
         if tokentype_ids is not None:
             assert self.tokentype_embeddings is not None
@@ -210,6 +209,7 @@ class Embedding(MegatronModule):
                 if 'word_embeddings' in key:
                     state_dict_[key.split('word_embeddings.')[1]] \
                         = state_dict[key]
+        state_dict_["weight"] = state_dict_["weight"][:self.vocab_size]
         self.word_embeddings.load_state_dict(state_dict_, strict=strict)
 
         # Position embedding.
@@ -446,7 +446,6 @@ class TransformerLanguageModel(MegatronModule):
         # Query Embeddings.
         queryEmbedding_out = self.topQueryEmbedding(position_ids,
                                                     tokentype_ids=tokentype_ids)
-
 
         # Transformer.
         transformer_output = self.transformer(embedding_output,
