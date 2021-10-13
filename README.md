@@ -11,7 +11,7 @@
 # mindspore 推理、Finetune、预训练
 
 1. [请查看](inference_mindspore_gpu/README.md)：该部分代码只支持推理，如果只想体验一下盘古α的话，推荐使用这个页面下的《三分钟实现推理教程》。
-2. [请查看](https://gitee.com/mindspore/mindspore/tree/master/model_zoo/official/nlp/pangu_alpha)：如果想在盘古α上开发的话，推荐使用 mindspore 提供的训练和推理代码。mindspore 官网的 model_zoo 提供了推理、Finetune、预训练全流程。
+2. [请查看](https://gitee.com/mindspore/models/tree/master/official/nlp/pangu_alpha )：如果想在盘古α上开发的话，推荐使用 mindspore 提供的训练和推理代码。mindspore 官网的 model_zoo 提供了推理、Finetune、预训练全流程。
 
 # pytorch 推理、Finetune、预训练
 
