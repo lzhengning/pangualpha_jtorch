@@ -68,8 +68,7 @@ def pretrain(train_valid_test_dataset_provider, model_provider,
     """
 
     # Initalize and get arguments, timers, and Tensorboard writer.
-    initialize_megatron(extra_args_provider=extra_args_provider,
-                        args_defaults=args_defaults)
+    initialize_megatron(extra_args_provider=extra_args_provider, args_defaults=args_defaults)
 
     args = get_args()
     timers = get_timers()
@@ -164,7 +163,7 @@ def get_optimizer(model):
                 param.model_parallel = False
 
     # Use Adam.
-    optimizer = Adam(param_groups, lr=args.lr, weight_decay=args.weight_decay)
+    optimizer = Adam(param_groups, lr=args.lr, weight_decay=args.weight_decay, betas=(0.9, 0.95), eps=1e-8)
 
     # Wrap into fp16 optimizer.
     if args.fp16:
@@ -237,7 +236,10 @@ def backward_step(optimizer, model, loss):
 
     # Backward pass.
     timers('backward-backward').start()
-    optimizer.zero_grad(set_grads_to_None=True)
+    if args.fp16:
+        optimizer.zero_grad(set_grads_to_None=True)
+    else:
+        optimizer.zero_grad()
     if args.fp16:
         optimizer.backward(loss, update_master_grads=False)
     else:
@@ -421,8 +423,7 @@ def train(forward_step_func, model, optimizer, lr_scheduler,
             torch.distributed.barrier()
             time_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             rank = torch.distributed.get_rank()
-            print_rank_0('rank: {} | time: {} | exiting the program at '
-                         'iteration {}'.format(rank, time_str, iteration))
+            print_rank_0('rank: {} | time: {} | exiting the program at iteration {}'.format(rank, time_str, iteration))
             sys.exit()
 
     return iteration, skipped_iters
@@ -532,6 +533,7 @@ def build_train_valid_test_data_iterators(
     torch.distributed.broadcast(flags,
                                 mpu.get_model_parallel_src_rank(),
                                 group=mpu.get_model_parallel_group())
+    
     args.do_train = flags[0].item()
     args.do_valid = flags[1].item()
     args.do_test = flags[2].item()
