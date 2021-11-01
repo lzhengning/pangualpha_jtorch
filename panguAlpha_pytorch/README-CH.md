@@ -1,54 +1,54 @@
-This is a pytorch implementation of the Pangu alpha model. It can be inferred, trained, and finetune on the pytorch framework.
+这是盘古α模型的 pytorch 实现版本。可以在 pytorch 框架上进行推理、训练、finetune。
 
-Starting point: Mindspore is a new deep learning framework that many people have not used, so converting mindspore models to pytorch models will allow more people to use our Pangu models and allow users to not only experience our large models, but also finetune our models.
+出发点：Mindspore 是新的深度学习框架，很多人没用过，所以把 mindspore 模型转成 pytorch 模型可以让更多人使用我们的盘古模型，让使用者不但可以体验我们的大模型，还可以对我们的模型进行 finetune 。
 
-Megatron is a large, powerful transformer algorithm library developed by NVIDIA's deep learning applications research team. This port is based on Megatron, and the main work includes converting model files, adding query layer, and modifying model slicing strategy.
+Megatron 是英伟达深度学习应用研究团队开发的一款大型、强大的 transformer 算法库。这次的移植是在 Megatron 的基础上修改得到，主要工作内容包括了模型文件的转换、增加 query layer、修改模型切分策略。
 
-# Environments
+# 环境
 
-Supports python >= 3.6, pytorch >= 1.5, cuda >= 10, and nccl >= 2.6 versions.
+支持 python >= 3.6, pytorch >= 1.5, cuda >= 10, and nccl >= 2.6 版本.
 
-The official NVIDIA docker image `docker pull nvcr.io/nvidia/pytorch:20.03-py3` is recommended. You need to install [NLTK](https://www.nltk.org/install.html).
+推荐使用英伟达的官方 docker 镜像`docker pull nvcr.io/nvidia/pytorch:20.03-py3`。需要安装 [NLTK](https://www.nltk.org/install.html)。
 
-You can also download the paired image directly at
+也可直接下载配好的镜像：
 
 ```bash
 docker pull yands/pangu-alpha-megatron-lm-nvidia-pytorch:20.03.2
 ```
-Using`/opt/conda/bin/python`。
+使用`/opt/conda/bin/python`。
 
-# Model File Download
+# 模型文件下载
 
-| Model File                                                     | Md5                              | Size | Parameter Configuration                                                     |
+| 模型文件                                                     | Md5                              | 大小 | 参数配置                                                     |
 | ------------------------------------------------------------ | -------------------------------- | ---- | ------------------------------------------------------------ |
 | [Pangu-alpha_2.6B_fp16_mgt.zip](https://git.openi.org.cn/attachments/72aec03d-6bdb-4652-ac2a-8099db4b0bed) | 28f6dd2ec5d1df2fd22ec5f4a66f51e7 | 4.6G | num-layers : 31<br />hidden-size : 2560<br />num-attention-heads : 32 |
 | [Pangu-alpha_13B_fp16_mgt.zip](https://git.openi.org.cn/attachments/937b3e2d-98fb-4871-9691-b32afb5a4d79?type=0) | e6f7a05cbdf8ba8d69e6786e48344f6f | 22G | num-layers : 39<br />hidden-size : 5120<br />num-attention-heads : 40 |
 
-**Note：`num-layers` is equal to `num-layers - 1` in [Pangu](https://git.openi.org.cn/PCL-Platform.Intelligence/PanGu-Alpha)**
+**注：`num-layers` 等于 [Pangu](https://git.openi.org.cn/PCL-Platform.Intelligence/PanGu-Alpha) 项目中的 `num-layers - 1`**
 
-Model file directory structure.
+模型文件目录结构：
 ```txt
-Pangu-alpha_2.6B_fp16_mgt #model directory, --load parameter needs to fill in the path
-    -- iter_0001000 # iteration number directory
-        --mp_rank_00 # directory for each GPU when the model is parallel
-            --model_optim_rng.pt #model file
-    --latest_checkpointed_iteration.txt #file of iterations of ckpt
+Pangu-alpha_2.6B_fp16_mgt                       #模型目录，--load 参数需要填写的路径
+    -- iter_0001000                             #迭代次数目录
+        --mp_rank_00                            #模型并行时各个 GPU 的目录
+            --model_optim_rng.pt                #模型文件
+    --latest_checkpointed_iteration.txt         #记录 ckpt 的迭代次数文件
 ```
-# Accuracy
-There are some differences in the results of the `mean` operator between the two frameworks, resulting in inconsistent output of the `LayerNorm` layer, so the generated results are not exactly consistent. Not solved yet, looking for a solution :-).
+# 精度
+两个框架的`mean`算子的结果有一定的差异，导致 `LayerNorm` 层的输出不一致，所以生成结果不完全一致。暂时还没解决，正在寻找解决方案 :-) 。
 
-On the iflytek task, the few-shot accuracy of pytorch's 2.6b_fp16 model is 0.78929, which is 2 points down from the paper's 0.81.
-# Inference
+在 iflytek 任务上，pytorch 的 2.6b_fp16 模型的 few-shot 精度为0.78929，相对于论文的的0.81 下降了 2 个点。
+# 推理
 
-###** Want a quick experience? Check out the [3-Minute Tutorial on inference](3-minus-inference.md)! You can white-knuckle the T4 server!!! **
+###**想快速体验？？请查看[3分钟实现推理教程](3-minus-inference.md)！！可以白嫖 T4 服务器哦！！！**
 
-Currently only the inference script for generating text is available, as follows.
+目前只有生成文本的推理脚本，如下：
 
-Requires the following configuration parameters.
+需要配置参数：
 
-`-out-seq-length`: the maximum number of tokens to generate
+`--out-seq-length`：生成的最大 token 数
 
-`--top_k`: the larger the value of k, the higher the diversity of generated samples. Different k can be tried.
+`--top_k`：k 值越大生成样本多样性越高。可以尝试不同的 k。
 
 ```bash
 python tools/generate_samples_Pangu.py \
@@ -69,7 +69,7 @@ python tools/generate_samples_Pangu.py \
 --top_k 2 \
 --finetune
 ```
-Examples：
+例子：
 
 k=1
 ```txt
@@ -108,22 +108,22 @@ Output is: 分别在哪个省的哪个市
 
 
 # Finetune
-Currently only finetune is provided without changing the model model structure and data format, i.e. continue pre-training.
-##### 1. Preparing training data
+目前只提供了不改变模型模型结构和数据格式的 finetune，也就是继续预训练。
+##### 1、准备训练数据
 
-Refer to [data](#data) section
+参考[数据](#数据)部分
 
-##### 2. Model cutting
+##### 2、模型切割
 
-The model downloaded above is a single machine inference model, so you need to cut the model first when finetune is performed, and cut it into model parallel models.
+上面下载的模型是单机推理模型，所以在进行 finetune 的时候需要先对模型进行切割，切割成模型并行的模型。
 
-Parameters.
+参数：
 
-`-model-parallel-size`: the number of slices of the original model, here is 1
+`model-parallel-size`：原始模型的分片个数，这里是 1
 
-`--num-mp-model`: the number of models after slicing
+`--num-mp-model`： 切分后的模型个数
 
-`--mp-model-save`: the path to save the model after slicing
+`--mp-model-save`：切分后，模型的保存路径
 
 ```bash
 python tools/split_full_model_into_mp_model.py \
@@ -143,21 +143,22 @@ python tools/split_full_model_into_mp_model.py \
 --vocab-file megatron/tokenizer/bpe_4w_pcl/vocab \
 --finetune
 ```
-##### 3. Training
 
-Run the script:
+##### 3、训练
+
+运行脚本:
 
 ```examples/finetune_pangu_distributed.sh```
 
-##### 4. Model merging
+##### 4、模型合并
 
-The finished model of finetune is fragmented, so if you want to do single card inference, you need to merge the model first.
+finetune 完后的模型是分片的，如果要进行单卡推理，则先需要对模型进行合并。
 
-Merge script.
+合并脚本：
 
-`--mp-model-parallel-size`: the number of model slices
+`--mp-model-parallel-size`：模型分片数
 
-`--load`: model save directory
+`--load`：模型保存目录
 
 ```bash
 python tool/merge_mp_partitions.py \
@@ -180,9 +181,9 @@ python tool/merge_mp_partitions.py \
 
 
 
-# Training
+# 训练
 
-Reference Script
+参考脚本
 
 ```bash
 examples/pretrain_pangu_distributed_2.6B.sh
@@ -190,15 +191,15 @@ examples/pretrain_pangu_distributed_2.6B.sh
 
 
 
-# Data
+# 数据
 
-##### Generate training data
+##### 生成训练数据
 
-Reference script: `/tools/preprocess_data_pangu.py`
+参考脚本：`/tools/preprocess_data_pangu.py`
 
-Store multiple `xxx.txt` files in the train_dataset directory, if there are more training data, it is better to have a uniform file size for each `txt` and separate multiple `txt`s, the size can be 10M a file. If there is traditional text that needs to be converted to simplified, you can use `zhconv`.
+在 train_dataset 目录下存放多个 `xxx.txt` 文件，如果训练数据较多，最好每个 `txt` 文件大小统一，且分开多个 `txt` 存放，大小可以 10M 一个文件。如果有繁体文字，需要转成简体，可以使用`zhconv`。
 
-The format of each `txt` text is (need blank lines to split different samples)
+每个 `txt` 文本格式为（需要空行分割不同样本）：
 ```txt
 sample 1 ***
 ***
@@ -221,9 +222,9 @@ python /tools/preprocess_data_pangu.py \
 --append-eod
 ```
 
-The files /path/to/dataset/xxx.idx and /path/to/dataset/xxx.bin will be generated.
+将会生成/path/to/dataset/xxx.idx 和 /path/to/dataset/xxx.bin 文件。
 
-Finetune and pre-training require the parameter: `-data-path=/path/to/dataset/xxx`
+Finetune 和预训练时需要填写参数：`--data-path=/path/to/dataset/xxx`
 
 
 
