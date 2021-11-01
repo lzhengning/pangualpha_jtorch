@@ -1,65 +1,66 @@
 # PanGu-Alpha-GPU
 
- 
-
-### 描述
-
-本项目是  [Pangu-alpha](https://git.openi.org.cn/PCL-Platform.Intelligence/PanGu-Alpha) 的 GPU 推理版本，关于  [Pangu-alpha](https://git.openi.org.cn/PCL-Platform.Intelligence/PanGu-Alpha) 的原理、数据集等信息请查看原项目。该项目现阶段主要是让 Pangu-alpha 模型能在 GPU 上进行推理和训练，让更多人体验到大模型的魅力。开放的宗旨就是要集思广益、抛砖引玉、挖掘大模型应用潜力，同时发现存在的问题，以指导我们未来的创新研究和突破。
 
 
+### Description
 
-### 模型 ckpt
+This project is a GPU inference version of [Pangu-alpha](https://git.openi.org.cn/PCL-Platform.Intelligence/PanGu-Alpha), for information about [Pangu-alpha](https://git.openi.org.cn /Intelligence/Pangu-Alpha), please see the original project for information on the principles, datasets, etc. The current phase of the project focuses on enabling Pangu-alpha models to be inferred and trained on GPUs, so that more people can experience the appeal of large models. The purpose of openness is to gather ideas, draw inspiration, and explore the potential of large model applications, as well as to identify problems that can guide our future innovative research and breakthroughs.
 
-| 模型                                                         | MD5                              | 精度 |
+
+
+### model ckpt
+
+| model                                                         | MD5                              | fp |
 | ------------------------------------------------------------ | -------------------------------- | ---- |
 | [Pangu-alpha_2.6B.ckpt](https://git.openi.org.cn/attachments/27234961-4d2c-463b-9052-0240cc7ff29b?type=0) | da404a985671f1b5ad913631a4e52219 | fp32 |
 | [ PanguAlpha_13b_fp16.ckpt](https://git.openi.org.cn/attachments/650711d6-6310-4dc2-90f8-153552e59c7a?type=0) | f2734649b9b859ff4cf62d496291249a | fp16 |
 | [PanguAlpha_2.6B_fp16.ckpt](https://git.openi.org.cn/attachments/7ff30c2f-e9e4-44be-8eaa-23c9d617b781?type=0) | 3a14e8bf50548a717160e89df7c14b63 | fp16 |
 
-[Pangu-alpha_2.6B.ckpt](https://git.openi.org.cn/attachments/27234961-4d2c-463b-9052-0240cc7ff29b?type=0) 可以用于 `fp16` 和 `fp32` 的 2.6B 模型 的加载，因为在模型加载阶段会进行精度转换
+[Pangu-alpha_2.6B.ckpt](https://git.openi.org.cn/attachments/27234961-4d2c-463b-9052-0240cc7ff29b?type=0) Can be used for loading 2.6B models of `fp16` and `fp32`, since the precision conversion is performed during the model loading phase
 
-[ PanguAlpha_13b_fp16.ckpt](https://git.openi.org.cn/attachments/650711d6-6310-4dc2-90f8-153552e59c7a?type=0) 只能用于 `fp16` 的13B 模型的加载
+[ PanguAlpha_13b_fp16.ckpt](https://git.openi.org.cn/attachments/650711d6-6310-4dc2-90f8-153552e59c7a?type=0) Can only be used for loading 13B models of `fp16`
 
-[PanguAlpha_2.6B_fp16.ckpt](https://git.openi.org.cn/attachments/7ff30c2f-e9e4-44be-8eaa-23c9d617b781?type=0) 可以用于 `fp16` 的 2.6B 模型 的加载，效果和[Pangu-alpha_2.6B.ckpt](https://git.openi.org.cn/attachments/27234961-4d2c-463b-9052-0240cc7ff29b?type=0) 是一样的，但该 ckpt 消耗的内存更小，约20g。
+[PanguAlpha_2.6B_fp16.ckpt](https://git.openi.org.cn/attachments/7ff30c2f-e9e4-44be-8eaa-23c9d617b781?type=0) can be used for loading 2.6B models of `fp16`, is the same as [Pangu-alpha_2.6B.ckpt](https://git.openi.org.cn/attachments/27234961-4d2c-463b-9052-0240cc7ff29b?type=0), but this ckpt consumes less memory, about 20g.
 
-### 显存占用情况
+### Graphics memory usage
 
-| 模型      | 显存占用  |
+| model      | Graphics memory  |
 | --------- | --------- |
 | 2.6B_fp16 | 6728 MiB  |
 | 2.6B_fp32 | 17214 MiB |
 | 13B_fp16  | 26430 MiB |
 
-可以根据显卡显存大小运行不同的模型
+Different models can be run depending on the video memory size of the card
 
-`2.6B_fp16` 模型应该可以大多数显卡上运行
+The `2.6B_fp16` model should work on most graphics cards
 
-已经在 T4 成功运行 `2.6B_fp16` 模型，在  v100 上成功运行 `2.6B_fp16` `2.6B_fp32` `13B_fp16`模型
-
-### 推理
-
-###**想快速体验？？请查看[3分钟实现推理教程](3-minus-inference.md)！！可以白嫖 T4 服务器哦！！！**
+Already running `2.6B_fp16` model successfully on T4 and `2.6B_fp16`, `2.6B_fp32` and `13B_fp16` models on v100
 
 
-##### 环境
+### Reasoning
 
-可以直接使用现成的 docker 镜像
+###** Want a quick experience? Check out the [3-Minute Tutorial on inference](3-minus-inference.md)! You can use the T4 server for free!!! **
+
+
+##### Environment
+
+You can use a ready-made docker image directly
 
 ```
 docker pull yands/mindspore_pangu-alpha:1.2.0
 ```
-python 路径 `/usr/local/bin/python`
+python path  `/usr/local/bin/python`
 
-如果不喜欢使用这个镜像，也可以使用 `mindspore:1.2.0` 版本，可以直接运行 `2.6B_fp32` 模型。想运行 `fp16` 的模型需要修改几处 mindspore 源码，请查看[附录](#源码修改)。
+If you don't like to use this image, you can also use the `mindspore:1.2.0` version, which allows you to run the `2.6B_fp32` model directly. There are several mindspore source code changes needed to run the `fp16` model, please see [appendix](#source code changes).
 
-##### 依赖
+##### dependencies
 
 ```
 pip install jieba
 pip install sentencepiece==0.1.94
 ```
 
-##### 运行
+##### run
 
 ```
 python run_inference.py --model=13B_fp16 --load_ckpt_path=/xxx/PanguAlpha_13b_fp16.ckpt
@@ -67,9 +68,9 @@ python run_inference.py --model=2B6_fp16 --load_ckpt_path=/xxx/PanguAlpha_2_6b.c
 python run_inference.py --model=2B6 --load_ckpt_path=/xxx/PanguAlpha_2_6b.ckpt
 ```
 
-##### 结果
+##### result
 
-注：该结果限制输出 tokens 长度为50，没有针对不同任务做后处理
+Note: The result limits the output tokens length to 50, without post-processing for different tasks
 
 ```
 Input is: 上联：瑞风播福泽，事业具昌盛千家乐
@@ -158,9 +159,9 @@ Input is: 中国和美国和日本和法国和加拿大和澳大利亚的首都�
 13B_fp16  :中国的首都是北京,美国的首都是纽约,日本的首都是东京,法国的首都是巴黎。
 ```
 
-### 报错
+### error
 
-- ​	有时会报下面两个错误，如果出现，重新运行
+- ​	Sometimes the following two errors are reported, if they occur, re-run
 
 ```
 FileNotFoundError: [Errno 2] No such file or directory: '/userhome/pclproject/gpt/PanGu-Alpha-GPU/inference/cuda_meta_105367/NotEqual_9416851550248092999.json'
@@ -172,11 +173,11 @@ ModuleNotFoundError: No module named 'tvm'
 
 
 
-### 附录
+### Appendix
 
-#### 源码修改
+#### Source Code Modification
 
-1、mindspore/train/serialization.py 的 load_param_into_net() 函数
+1、 the function `load_param_into_net()` on mindspore/train/serialization.py
 
 ```
 def load_param_into_net(net, parameter_dict, strict_load=False,):
@@ -242,7 +243,7 @@ def load_param_into_net(net, parameter_dict, strict_load=False,):
 
 
 
-2、mindspore/nn/layer/basic.py 的 class Dense() 
+2、class Dense() of mindspore/nn/layer/basic.py
 
 ```
 class Dense(Cell):

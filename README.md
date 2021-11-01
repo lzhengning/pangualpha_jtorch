@@ -1,17 +1,18 @@
 # PanGu-Alpha-GPU
 
- English|[中文](README-CH.md)
+[英文](README-en.md)|中文
 
-### Description
+### 描述
 
-This project is the GPU version of [Pangu-alpha](https://git.openi.org.cn/PCL-Platform.Intelligence/PanGu-Alpha), please check the original project for the details of Pangu-alpha. The main purpose of this project is to enable Pangu-alpha models to be inferred and trained on GPU, so that more people can experience the charm of big models. The purpose of openness is to gather ideas and explore the potential applications of large model , as well as to identify problems that can guide our future innovative research and breakthroughs.
+本项目是  [Pangu-alpha](https://git.openi.org.cn/PCL-Platform.Intelligence/PanGu-Alpha) 的 GPU 版本，关于  [Pangu-alpha](https://git.openi.org.cn/PCL-Platform.Intelligence/PanGu-Alpha) 的原理、数据集等信息请查看原项目。该项目现阶段主要是让 Pangu-alpha 模型能在 GPU 上进行推理和训练，让更多人体验到大模型的魅力。开放的宗旨就是要集思广益、抛砖引玉、挖掘大模型应用潜力，同时发现存在的问题，以指导我们未来的创新研究和突破。
 
 
-# mindspore Inference、Finetune、Pre-training
-: 
-1. [Please check](inference_mindspore_gpu/README.md)：This part of the code only supports inference, so if you just want to experience Pangu-Alpha, we recommend using the "Three minutes to implement inference tutorial" under this page.
-2. [Please check](https://gitee.com/mindspore/models/tree/master/official/nlp/pangu_alpha  )：If you want to develop on Pangu-Alpha, we recommend using the training and inference code provided by mindspore. Model_zoo on the official website of mindspore provides inference, Finetune, and pre-training full process.
 
-# pytorch Inference、Finetune、Pre-training
+# mindspore 推理、Finetune、预训练
 
-[Please check](panguAlpha_pytorch/README.md)：The full process of inference, Finetune, and pre-training of Pangu-Alpha developed based on Megatron-1.1.
+1. [请查看](inference_mindspore_gpu/README.md)：该部分代码只支持推理，如果只想体验一下盘古α的话，推荐使用这个页面下的《三分钟实现推理教程》。
+2. [请查看](https://gitee.com/mindspore/models/tree/master/official/nlp/pangu_alpha  )：如果想在盘古α上开发的话，推荐使用 mindspore 提供的训练和推理代码。mindspore 官网的 model_zoo 提供了推理、Finetune、预训练全流程。
+
+# pytorch 推理、Finetune、预训练
+
+[请查看](panguAlpha_pytorch/README.md)：基于 Megatron-1.1开发的盘古α的推理、Finetune、预训练全流程。
