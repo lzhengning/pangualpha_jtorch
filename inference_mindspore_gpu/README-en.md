@@ -1,10 +1,10 @@
-# PanGu-Alpha-GPU
+# PanGu-α-GPU
 
 
 
 ### Description
 
-This project is a GPU inference version of [Pangu-alpha](https://git.openi.org.cn/PCL-Platform.Intelligence/PanGu-Alpha), for information about [Pangu-alpha](https://git.openi.org.cn /Intelligence/Pangu-Alpha), please see the original project for information on the principles, datasets, etc. The current phase of the project focuses on enabling Pangu-alpha models to be inferred and trained on GPUs, so that more people can experience the appeal of large models. The purpose of openness is to gather ideas, draw inspiration, and explore the potential of large model applications, as well as to identify problems that can guide our future innovative research and breakthroughs.
+This project is a GPU inference version of [PanGu-α](https://git.openi.org.cn/PCL-Platform.Intelligence/PanGu-Alpha). For information about [PanGu-α](https://git.openi.org.cn /Intelligence/Pangu-Alpha), please see the original project for information on the principles, datasets, etc. The current phase of the project focuses on enabling PanGu-α models to be inferred and trained on GPUs such that more people can experience the appeal of large models. The purpose of openness is to gather ideas, draw inspiration, explore the potential of large model applications, as well as identify problems that can guide our future innovative research and breakthroughs.
 
 
 
@@ -12,29 +12,29 @@ This project is a GPU inference version of [Pangu-alpha](https://git.openi.org.c
 
 | model                                                         | MD5                              | fp |
 | ------------------------------------------------------------ | -------------------------------- | ---- |
-| [Pangu-alpha_2.6B.ckpt](https://git.openi.org.cn/attachments/27234961-4d2c-463b-9052-0240cc7ff29b?type=0) | da404a985671f1b5ad913631a4e52219 | fp32 |
-| [ PanguAlpha_13b_fp16.ckpt](https://git.openi.org.cn/attachments/650711d6-6310-4dc2-90f8-153552e59c7a?type=0) | f2734649b9b859ff4cf62d496291249a | fp16 |
-| [PanguAlpha_2.6B_fp16.ckpt](https://git.openi.org.cn/attachments/7ff30c2f-e9e4-44be-8eaa-23c9d617b781?type=0) | 3a14e8bf50548a717160e89df7c14b63 | fp16 |
+| [PanGu-α_2.6B.ckpt](https://git.openi.org.cn/attachments/27234961-4d2c-463b-9052-0240cc7ff29b?type=0) | da404a985671f1b5ad913631a4e52219 | fp32 |
+| [PanGu-α_13B_fp16.ckpt](https://git.openi.org.cn/attachments/650711d6-6310-4dc2-90f8-153552e59c7a?type=0) | f2734649b9b859ff4cf62d496291249a | fp16 |
+| [PanGu-α_2.6B_fp16.ckpt](https://git.openi.org.cn/attachments/7ff30c2f-e9e4-44be-8eaa-23c9d617b781?type=0) | 3a14e8bf50548a717160e89df7c14b63 | fp16 |
 
-[Pangu-alpha_2.6B.ckpt](https://git.openi.org.cn/attachments/27234961-4d2c-463b-9052-0240cc7ff29b?type=0) Can be used for loading 2.6B models of `fp16` and `fp32`, since the precision conversion is performed during the model loading phase
+[PanGu-α_2.6B.ckpt](https://git.openi.org.cn/attachments/27234961-4d2c-463b-9052-0240cc7ff29b?type=0) can be used for loading 2.6B models of `fp16` and `fp32` since the precision conversion is performed during the model loading phase.
 
-[ PanguAlpha_13b_fp16.ckpt](https://git.openi.org.cn/attachments/650711d6-6310-4dc2-90f8-153552e59c7a?type=0) Can only be used for loading 13B models of `fp16`
+[PanGu-α_13B_fp16.ckpt](https://git.openi.org.cn/attachments/650711d6-6310-4dc2-90f8-153552e59c7a?type=0) can only be used for loading 13B models of `fp16`.
 
-[PanguAlpha_2.6B_fp16.ckpt](https://git.openi.org.cn/attachments/7ff30c2f-e9e4-44be-8eaa-23c9d617b781?type=0) can be used for loading 2.6B models of `fp16`, is the same as [Pangu-alpha_2.6B.ckpt](https://git.openi.org.cn/attachments/27234961-4d2c-463b-9052-0240cc7ff29b?type=0), but this ckpt consumes less memory, about 20g.
+[PanGu-α_2.6B_fp16.ckpt](https://git.openi.org.cn/attachments/7ff30c2f-e9e4-44be-8eaa-23c9d617b781?type=0) can be used for loading 2.6B models of `fp16`, which is the same as [PanGu-α_2.6B.ckpt](https://git.openi.org.cn/attachments/27234961-4d2c-463b-9052-0240cc7ff29b?type=0). However, this ckpt consumes less memory (about 20G).
 
 ### Graphics memory usage
 
-| model      | Graphics memory  |
+| Model      | Graphics memory  |
 | --------- | --------- |
 | 2.6B_fp16 | 6728 MiB  |
 | 2.6B_fp32 | 17214 MiB |
 | 13B_fp16  | 26430 MiB |
 
-Different models can be run depending on the video memory size of the card
+Different models can be run depending on the memory size of the card.
 
-The `2.6B_fp16` model should work on most graphics cards
+The `2.6B_fp16` model should work on most graphics cards.
 
-Already running `2.6B_fp16` model successfully on T4 and `2.6B_fp16`, `2.6B_fp32` and `13B_fp16` models on v100
+The `2.6B_fp16` model has been run successfully on T4. `2.6B_fp16`, `2.6B_fp32` and `13B_fp16` models need to be run on V100 GPU.
 
 
 ### Reasoning
@@ -51,7 +51,7 @@ docker pull yands/mindspore_pangu-alpha:1.2.0
 ```
 python path  `/usr/local/bin/python`
 
-If you don't like to use this image, you can also use the `mindspore:1.2.0` version, which allows you to run the `2.6B_fp32` model directly. There are several mindspore source code changes needed to run the `fp16` model, please see [appendix](#source code changes).
+If you don't like to use this image, you can also use the `mindspore:1.2.0` version which allows you to run the `2.6B_fp32` model directly. There are several mindspore source code changes needed to run the `fp16` model. Please see [appendix](#source code changes).
 
 ##### dependencies
 
@@ -70,7 +70,7 @@ python run_inference.py --model=2B6 --load_ckpt_path=/xxx/PanguAlpha_2_6b.ckpt
 
 ##### result
 
-Note: The result limits the output tokens length to 50, without post-processing for different tasks
+Note: The result limits the output tokens length to 50 without post-processing for different tasks.
 
 ```
 Input is: 上联：瑞风播福泽，事业具昌盛千家乐
