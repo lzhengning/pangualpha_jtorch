@@ -32,7 +32,7 @@ Go to the [PanGu-Alpha-GPU](https://git.openi.org.cn/PCL-Platform.Intelligence/P
 
 - Wait a while and the `调试` button will appear, click inside you will see the familiar jupyter debugging interface
 
-# 4、推理
+# 4、Inference
 - Directory structure
 
   /dataset/   where the dataset is stored, we put the model in this directory when we just submitted the task
