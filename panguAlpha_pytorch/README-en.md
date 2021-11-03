@@ -40,7 +40,7 @@ There are some differences in the results of the `mean` operator between the two
 On the iflytek task, the few-shot accuracy of pytorch's 2.6b_fp16 model is 0.78929, which is 2 points down from the paper's 0.81.
 # Inference
 
-###** Want a quick experience? Check out the [3-Minute Tutorial on inference](3-minus-inference.md)! You can white-knuckle the T4 server!!! **
+###** Want a quick experience? Check out the [3-Minute Tutorial on inference](3-minus-inference-en.md)! You can white-knuckle the T4 server!!! **
 
 Currently only the inference script for generating text is available, as follows.
 

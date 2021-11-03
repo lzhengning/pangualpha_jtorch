@@ -39,7 +39,7 @@ The `2.6B_fp16` model has been run successfully on T4. `2.6B_fp16`, `2.6B_fp32` 
 
 ### Reasoning
 
-###** Want a quick experience? Check out the [3-Minute Tutorial on inference](3-minus-inference.md)! You can use the T4 server for free!!! **
+###** Want a quick experience? Check out the [3-Minute Tutorial on inference](3-minus-inference-en.md)! You can use the T4 server for free!!! **
 
 
 ##### Environment
