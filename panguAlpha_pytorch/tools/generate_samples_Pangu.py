@@ -132,6 +132,7 @@ def main():
     model = get_model(model_provider)
     model.eval()
 
+    print('loading checkpoint ...')
     args = get_args()
     if args.load is not None:
         _ = load_checkpoint(model, None, None)
@@ -153,10 +154,14 @@ def main():
         tokenizer = get_tokenizer()
         context_tokens = tokenizer.tokenize(raw_text)
 
+        import time
+        start = time.time()
         output_ids = generate(model, context_tokens, args, tokenizer)
+        end = time.time()
         output_samples = tokenizer.convert_ids_to_tokens(output_ids.tolist())
 
         print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+        print('per token costs:', (end-start)/(len(output_ids)-len(tokenizer.tokenize(raw_text))))
         print('Input is:', sample)
         print('Output is:', output_samples[len(sample):], flush=True)
         print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
