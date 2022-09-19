@@ -19,7 +19,7 @@
 
 - 点击`新建任务`
 
-- 在`镜像`那一栏里面搜索下图的镜像
+- 在`镜像`那一栏里面搜索下图的镜像:swr.cn-south-1.myhuaweicloud.com/mindspore/mindspore-gpu-cuda10.1:1.3.0
 
 ![img.png](images/chice-images.png)
 
