@@ -737,7 +737,7 @@ class ParallelTopQueryLayer(MegatronModule):
     def forward(self, hidden_states, query_hidden_state, attention_mask, layer_past=None,
                 get_key_value=False):
         # hidden_states: [b, s, h]
-        assert query_hidden_state != None
+        assert query_hidden_state is not None
 
         # Layer norm at the begining of the transformer layer.
         layernorm_output = self.input_layernorm(hidden_states)

@@ -69,7 +69,7 @@ def get_checkpoint_name(checkpoints_path, iteration,
                         'mp_rank_{:02d}'.format(
                             mpu.get_model_parallel_rank() if mp_rank is None
                             else mp_rank),
-                        'model_optim_rng.pt')
+                        'model_optim_rng.pth')
 
 
 def get_checkpoint_tracker_filename(checkpoints_path):
@@ -207,7 +207,21 @@ def load_checkpoint(model, optimizer, lr_scheduler, load_arg='load'):
         print_rank_0('could not find arguments in the checkpoint ...')
 
     # Model.
+    def dfs_state_dict(state_dict):
+        for k, v in state_dict.items():
+            if isinstance(v, torch.Tensor):
+                state_dict[k] = v.float()
+            elif isinstance(v, dict):
+                state_dict[k] = dfs_state_dict(v)
+        return state_dict
+    state_dict = dfs_state_dict(state_dict)
     model.load_state_dict(state_dict['model'])
+
+# state_dict['model']['language_model'].keys()
+# state_dict['model']['language_model']['embedding'].keys()
+# state_dict['model']['language_model']['embedding']['word_embeddings'].dtype
+# model.module.language_model.topQueryEmbedding.top_query_embeddings.weight.dtype
+# state_dict['model']['language_model']['topQueryEmbedding']['top_query_embeddings']['weight'].dtype
 
     # Optimizer.
     if not release and not args.finetune and not args.no_load_optim:

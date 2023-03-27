@@ -20,7 +20,7 @@ import math
 import sys
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel as torchDDP
-from apex.optimizers import FusedAdam as Adam
+# from apex.optimizers import FusedAdam as Adam
 
 from megatron import get_args
 from megatron import get_timers
